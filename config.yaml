@@ -1,0 +1,15 @@
+tz: Europe/Warsaw
+
+anchors:
+  morning: "09:00"
+  afternoon: "14:00"
+  evening: "18:00"
+  eod: "21:00"
+
+quiet_hours:
+  from: "00:00"
+  to: "07:00"
+
+reminders:
+  event_offsets_min: [60]
+  day_before_at: "20:00"
