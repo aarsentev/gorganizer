@@ -3,6 +3,7 @@ module go-organizer
 go 1.26.0
 
 require (
+	github.com/go-telegram/bot v1.27.0
 	google.golang.org/api v0.299.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.59.0
