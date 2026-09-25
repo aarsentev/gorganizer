@@ -1,0 +1,6 @@
+# Allowlist: only sources go into the build context, never .env, secrets/ or *.db.
+*
+!go.mod
+!go.sum
+!cmd/
+!internal/
