@@ -1,7 +1,8 @@
-VM    ?= organizer
-ZONE  ?= us-central1-a
-IMAGE := organizer
-SSH   := gcloud compute ssh $(VM) --zone $(ZONE) --
+# Plain ssh with the key gcloud generated: no Compute API round trip on every call.
+VM_HOST ?= 34.135.96.121
+VM_USER ?= $(USER)
+IMAGE   := organizer
+SSH     := ssh -i ~/.ssh/google_compute_engine $(VM_USER)@$(VM_HOST)
 
 .PHONY: run test image deploy logs
 
@@ -23,3 +24,6 @@ deploy: image
 
 logs:
 	$(SSH) 'sudo docker logs -f --tail 100 organizer'
+
+restart:
+	$(SSH) 'sudo docker restart organizer'
