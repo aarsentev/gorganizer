@@ -27,3 +27,6 @@ logs:
 
 restart:
 	$(SSH) 'sudo docker restart organizer'
+
+reboot:
+	$(SSH) 'sudo reboot'
