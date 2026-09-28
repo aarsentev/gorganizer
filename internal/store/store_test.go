@@ -85,3 +85,47 @@ func TestTryFire(t *testing.T) {
 		}
 	}
 }
+
+func TestStateAccessors(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+
+	if token, _ := s.SyncToken(ctx); token != "" {
+		t.Fatalf("initial SyncToken = %q", token)
+	}
+	if err := s.SetSyncToken(ctx, "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if token, _ := s.SyncToken(ctx); token != "abc" {
+		t.Fatalf("SyncToken = %q, want abc", token)
+	}
+	if err := s.SetSyncToken(ctx, ""); err != nil {
+		t.Fatal(err)
+	}
+	if token, _ := s.SyncToken(ctx); token != "" {
+		t.Fatalf("SyncToken after reset = %q", token)
+	}
+
+	if err := s.SetLang(ctx, "ru"); err != nil {
+		t.Fatal(err)
+	}
+	if lang, _ := s.Lang(ctx); lang != "ru" {
+		t.Fatalf("Lang = %q, want ru", lang)
+	}
+
+	if id, err := s.EveningMessageID(ctx); err != nil || id != 0 {
+		t.Fatalf("initial EveningMessageID = %d, %v", id, err)
+	}
+	if err := s.SetEveningMessageID(ctx, 4242); err != nil {
+		t.Fatal(err)
+	}
+	if id, _ := s.EveningMessageID(ctx); id != 4242 {
+		t.Fatalf("EveningMessageID = %d, want 4242", id)
+	}
+	if err := s.SetEveningMessageID(ctx, 0); err != nil {
+		t.Fatal(err)
+	}
+	if id, _ := s.EveningMessageID(ctx); id != 0 {
+		t.Fatalf("EveningMessageID after clear = %d", id)
+	}
+}
