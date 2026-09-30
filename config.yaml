@@ -1,4 +1,5 @@
 tz: Europe/Warsaw
+lang: ru
 
 anchors:
   morning: "09:00"
@@ -12,4 +13,8 @@ quiet_hours:
 
 reminders:
   event_offsets_min: [60]
-  day_before_at: "20:00"
+  evening_at: "20:00"
+  cleanup: false
+
+digest:
+  at: "07:30"
