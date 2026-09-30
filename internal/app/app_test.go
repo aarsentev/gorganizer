@@ -79,10 +79,10 @@ func TestHandleText(t *testing.T) {
 	}
 	now := time.Date(2026, 9, 29, 7, 5, 0, 0, time.UTC) // 09:05 in Warsaw
 
-	a.HandleText(ctx, now, 1, "привет")
+	a.HandleText(ctx, now, 1, "hello")
 	a.HandleText(ctx, now, 1, "/tz")
 
-	want := []string{"привет", "Europe/Warsaw, сейчас 09:05"}
+	want := []string{"hello", "Europe/Warsaw, Now 09:05"}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}
