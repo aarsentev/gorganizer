@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"go-organizer/internal/config"
 	"go-organizer/internal/store"
 )
 
@@ -27,6 +28,10 @@ func (f *fakeSender) Delete(_ context.Context, _, messageID int64) error {
 
 var discard = slog.New(slog.NewTextHandler(io.Discard, nil))
 
+func testConfig() *config.Config {
+	return &config.Config{TZ: "Europe/Warsaw", Lang: "ru"}
+}
+
 func openStore(t *testing.T) *store.Store {
 	t.Helper()
 	st, err := store.Open(context.Background(), ":memory:")
@@ -41,7 +46,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 	ctx := context.Background()
 	st := openStore(t)
 
-	a, err := New(ctx, st, &fakeSender{}, "Europe/Warsaw", discard)
+	a, err := New(ctx, st, &fakeSender{}, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +58,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 	}
 
 	// Restart with the same database: state wins over config.
-	a, err = New(ctx, st, &fakeSender{}, "Europe/Warsaw", discard)
+	a, err = New(ctx, st, &fakeSender{}, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +69,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 
 func TestSetTZRejectsUnknownZone(t *testing.T) {
 	ctx := context.Background()
-	a, err := New(ctx, openStore(t), &fakeSender{}, "Europe/Warsaw", discard)
+	a, err := New(ctx, openStore(t), &fakeSender{}, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +84,7 @@ func TestSetTZRejectsUnknownZone(t *testing.T) {
 func TestHandleText(t *testing.T) {
 	ctx := context.Background()
 	send := &fakeSender{}
-	a, err := New(ctx, openStore(t), send, "Europe/Warsaw", discard)
+	a, err := New(ctx, openStore(t), send, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +93,7 @@ func TestHandleText(t *testing.T) {
 	a.HandleText(ctx, now, 1, "hello")
 	a.HandleText(ctx, now, 1, "/tz")
 
-	want := []string{"hello", "Europe/Warsaw, Now 09:05"}
+	want := []string{"hello", "Europe/Warsaw, сейчас 09:05"}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}
@@ -96,5 +101,32 @@ func TestHandleText(t *testing.T) {
 		if send.sent[i] != want[i] {
 			t.Fatalf("sent[%d] = %q, want %q", i, send.sent[i], want[i])
 		}
+	}
+}
+
+func TestLangSurvivesRestart(t *testing.T) {
+	ctx := context.Background()
+	st := openStore(t)
+
+	a, err := New(ctx, st, &fakeSender{}, testConfig(), discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Lang() != "ru" {
+		t.Fatalf("first run Lang = %s, want config default", a.Lang())
+	}
+	if err := a.SetLang(ctx, "es"); err == nil {
+		t.Fatal("SetLang accepted an unsupported language")
+	}
+	if err := a.SetLang(ctx, "pl"); err != nil {
+		t.Fatal(err)
+	}
+
+	a, err = New(ctx, st, &fakeSender{}, testConfig(), discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Lang() != "pl" {
+		t.Fatalf("after restart Lang = %s, want pl", a.Lang())
 	}
 }

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync/atomic"
 	"time"
 
+	"go-organizer/internal/config"
 	"go-organizer/internal/store"
 )
 
@@ -19,23 +21,41 @@ type Sender interface {
 type App struct {
 	store *store.Store
 	send  Sender
+	cfg   *config.Config
+	texts *texts
 	log   *slog.Logger
 	loc   atomic.Pointer[time.Location]
+	lang  atomic.Pointer[string]
 }
 
-// New loads the time zone from state. On the very first run state is empty,
-// so defaultTZ (from config.yaml) is saved there and config is never read again.
-func New(ctx context.Context, st *store.Store, send Sender, defaultTZ string, log *slog.Logger) (*App, error) {
-	a := &App{store: st, send: send, log: log}
+// New loads the zone and the language from state. On the very first run state is empty,
+// so cfg.TZ and cfg.Lang are saved there; after that config never sets them again.
+func New(ctx context.Context, st *store.Store, send Sender, cfg *config.Config, log *slog.Logger) (*App, error) {
+	tx, err := loadTexts()
+	if err != nil {
+		return nil, err
+	}
+	a := &App{store: st, send: send, cfg: cfg, texts: tx, log: log}
 
 	tz, err := st.TZ(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if tz == "" {
-		tz = defaultTZ
+		tz = cfg.TZ
 	}
 	if err := a.SetTZ(ctx, tz); err != nil {
+		return nil, err
+	}
+
+	lang, err := st.Lang(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if lang == "" {
+		lang = cfg.Lang
+	}
+	if err := a.SetLang(ctx, lang); err != nil {
 		return nil, err
 	}
 	return a, nil
@@ -57,4 +77,25 @@ func (a *App) SetTZ(ctx context.Context, name string) error {
 	}
 	a.loc.Store(loc)
 	return nil
+}
+
+// Lang is the interface language: every text goes through it, never through cfg.Lang.
+func (a *App) Lang() string {
+	return *a.lang.Load()
+}
+
+func (a *App) SetLang(ctx context.Context, lang string) error {
+	if !slices.Contains(config.Languages, lang) {
+		return fmt.Errorf("lang %q: want one of %v", lang, config.Languages)
+	}
+	if err := a.store.SetLang(ctx, lang); err != nil {
+		return err
+	}
+	a.lang.Store(&lang)
+	return nil
+}
+
+// render is the only way to produce a user-facing text.
+func (a *App) render(name string, data any) (string, error) {
+	return a.texts.render(a.Lang(), name, data)
 }

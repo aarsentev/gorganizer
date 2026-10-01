@@ -53,12 +53,12 @@ func run() error {
 		return err
 	}
 
-	a, err := app.New(ctx, st, tgClient, cfg.TZ, log)
+	a, err := app.New(ctx, st, tgClient, cfg, log)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Started", "tz", a.Loc().String(), "db", cfg.DBPath)
+	log.Info("Started", "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath)
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {

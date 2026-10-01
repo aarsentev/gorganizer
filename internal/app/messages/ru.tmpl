@@ -1,0 +1,34 @@
+{{/* Every block is rendered by name from Go code. Other languages copy these names. */}}
+
+{{define "tz"}}{{.Zone}}, сейчас {{clock .Now}}{{end}}
+
+{{define "title"}}{{or . "(без названия)"}}{{end}}
+
+{{define "event_line"}}
+{{- if .AllDay}}весь день{{else}}{{clock .Start}}{{if not .End.IsZero}}–{{clock .End}}{{end}}{{end}} {{template "title" .Title}}
+{{- with .Location}}, {{.}}{{end}}
+{{- end}}
+
+{{define "reminder"}}
+⏰ {{template "title" .Event.Title}} через {{.Minutes}} мин — {{clock .Event.Start}}{{with .Event.Location}}, {{.}}{{end}}
+{{end}}
+
+{{define "evening"}}
+📅 Завтра, {{date .Day}}:
+{{range .Events}}• {{template "event_line" .}}
+{{end}}
+{{end}}
+
+{{define "evening_empty"}}
+📅 На завтра ничего нет, отдыхайте
+{{end}}
+
+{{define "digest"}}
+☀️ Сегодня, {{date .Day}} — {{len .Events}} {{plural (len .Events) "событие" "события" "событий"}}:
+{{range .Events}}• {{template "event_line" .}}
+{{end}}
+{{end}}
+
+{{define "digest_empty"}}
+☀️ Сегодня, {{date .Day}}, событий нет
+{{end}}

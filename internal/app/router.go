@@ -2,19 +2,23 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
 // HandleText is called by tg for every message from the allowed chat.
 func (a *App) HandleText(ctx context.Context, now time.Time, chatID int64, text string) {
-	var reply string
-	switch text {
-	case "/tz":
+	reply := text
+	if text == "/tz" {
 		loc := a.Loc()
-		reply = fmt.Sprintf("%s, Now %s", loc, now.In(loc).Format("15:04"))
-	default:
-		reply = text
+		var err error
+		reply, err = a.render("tz", struct {
+			Zone string
+			Now  time.Time
+		}{loc.String(), now.In(loc)})
+		if err != nil {
+			a.log.Error("render", "err", err)
+			return
+		}
 	}
 	a.reply(ctx, chatID, reply)
 }
