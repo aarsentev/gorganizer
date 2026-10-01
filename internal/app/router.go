@@ -20,7 +20,7 @@ func (a *App) HandleText(ctx context.Context, now time.Time, chatID int64, text 
 }
 
 func (a *App) reply(ctx context.Context, chatID int64, text string) {
-	if err := a.send.Send(ctx, chatID, text); err != nil {
+	if _, err := a.send.Send(ctx, chatID, text); err != nil {
 		a.log.Error("reply", "chat_id", chatID, "err", err)
 	}
 }

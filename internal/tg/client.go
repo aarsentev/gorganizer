@@ -48,10 +48,20 @@ func (c *Client) Run(ctx context.Context, h Handler) error {
 	return nil
 }
 
-func (c *Client) Send(ctx context.Context, chatID int64, text string) error {
-	_, err := c.bot.SendMessage(ctx, &bot.SendMessageParams{ChatID: chatID, Text: text})
+// Send returns the Telegram id of the new message, needed to delete it later.
+func (c *Client) Send(ctx context.Context, chatID int64, text string) (int64, error) {
+	m, err := c.bot.SendMessage(ctx, &bot.SendMessageParams{ChatID: chatID, Text: text})
 	if err != nil {
-		return fmt.Errorf("send to %d: %w", chatID, err)
+		return 0, fmt.Errorf("send to %d: %w", chatID, err)
+	}
+	return int64(m.ID), nil
+}
+
+// Delete removes a message the bot sent. Telegram allows it only within 48 hours.
+func (c *Client) Delete(ctx context.Context, chatID, messageID int64) error {
+	_, err := c.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{ChatID: chatID, MessageID: int(messageID)})
+	if err != nil {
+		return fmt.Errorf("delete %d in %d: %w", messageID, chatID, err)
 	}
 	return nil
 }

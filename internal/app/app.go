@@ -12,7 +12,8 @@ import (
 
 // Sender is implemented by tg.
 type Sender interface {
-	Send(ctx context.Context, chatID int64, text string) error
+	Send(ctx context.Context, chatID int64, text string) (messageID int64, err error)
+	Delete(ctx context.Context, chatID, messageID int64) error
 }
 
 type App struct {

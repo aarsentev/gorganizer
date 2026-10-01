@@ -11,11 +11,17 @@ import (
 )
 
 type fakeSender struct {
-	sent []string
+	sent    []string
+	deleted []int64
 }
 
-func (f *fakeSender) Send(_ context.Context, _ int64, text string) error {
+func (f *fakeSender) Send(_ context.Context, _ int64, text string) (int64, error) {
 	f.sent = append(f.sent, text)
+	return int64(len(f.sent)), nil
+}
+
+func (f *fakeSender) Delete(_ context.Context, _, messageID int64) error {
+	f.deleted = append(f.deleted, messageID)
 	return nil
 }
 
