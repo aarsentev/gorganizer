@@ -14,6 +14,7 @@ import (
 
 	"go-organizer/internal/app"
 	"go-organizer/internal/config"
+	"go-organizer/internal/gcal"
 	"go-organizer/internal/store"
 	"go-organizer/internal/tg"
 )
@@ -53,7 +54,14 @@ func run() error {
 		return err
 	}
 
-	a, err := app.New(ctx, st, tgClient, cfg, log)
+	// A broken calendar setup is a startup error: silently running without it
+	// would only show up as a reminder that never came.
+	cal, err := gcal.New(ctx, cfg.SAFile, cfg.CalendarID)
+	if err != nil {
+		return err
+	}
+
+	a, err := app.New(ctx, st, tgClient, cal, cfg, log)
 	if err != nil {
 		return err
 	}
@@ -66,6 +74,8 @@ func run() error {
 			a.HandleText(ctx, time.Now(), m.ChatID, m.Text)
 		})
 	})
+	g.Go(func() error { return app.Every(ctx, 5*time.Minute, a.Sync) })
+	g.Go(func() error { return app.Every(ctx, time.Minute, a.Tick) })
 	err = g.Wait()
 
 	log.Info("Stopped")

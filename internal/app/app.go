@@ -21,6 +21,7 @@ type Sender interface {
 type App struct {
 	store *store.Store
 	send  Sender
+	cal   Calendar // nil: no calendar, Sync does nothing
 	cfg   *config.Config
 	texts *texts
 	log   *slog.Logger
@@ -30,12 +31,12 @@ type App struct {
 
 // New loads the zone and the language from state. On the very first run state is empty,
 // so cfg.TZ and cfg.Lang are saved there; after that config never sets them again.
-func New(ctx context.Context, st *store.Store, send Sender, cfg *config.Config, log *slog.Logger) (*App, error) {
+func New(ctx context.Context, st *store.Store, send Sender, cal Calendar, cfg *config.Config, log *slog.Logger) (*App, error) {
 	tx, err := loadTexts()
 	if err != nil {
 		return nil, err
 	}
-	a := &App{store: st, send: send, cfg: cfg, texts: tx, log: log}
+	a := &App{store: st, send: send, cal: cal, cfg: cfg, texts: tx, log: log}
 
 	tz, err := st.TZ(ctx)
 	if err != nil {

@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -11,25 +13,75 @@ import (
 	"go-organizer/internal/store"
 )
 
+// fakeSender records what the bot would do in Telegram, in call order.
 type fakeSender struct {
-	sent    []string
-	deleted []int64
+	sent      []string
+	deleted   []int64
+	ops       []string // "send:<id>" and "delete:<id>"
+	failSends int      // the next N sends fail, as if Telegram were down
 }
 
 func (f *fakeSender) Send(_ context.Context, _ int64, text string) (int64, error) {
+	if f.failSends > 0 {
+		f.failSends--
+		return 0, errors.New("telegram is down")
+	}
 	f.sent = append(f.sent, text)
-	return int64(len(f.sent)), nil
+	id := int64(len(f.sent))
+	f.ops = append(f.ops, fmt.Sprintf("send:%d", id))
+	return id, nil
 }
 
 func (f *fakeSender) Delete(_ context.Context, _, messageID int64) error {
 	f.deleted = append(f.deleted, messageID)
+	f.ops = append(f.ops, fmt.Sprintf("delete:%d", messageID))
 	return nil
 }
 
 var discard = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func testConfig() *config.Config {
-	return &config.Config{TZ: "Europe/Warsaw", Lang: "ru"}
+	c := &config.Config{TZ: "Europe/Warsaw", Lang: "ru", ChatID: 42}
+	c.QuietHours.From, c.QuietHours.To = "00:00", "07:00"
+	c.Reminders.EventOffsetsMin = []int{60}
+	c.Reminders.EveningAt = "20:00"
+	c.Digest.At = "07:30"
+	return c
+}
+
+var warsaw, _ = time.LoadLocation("Europe/Warsaw")
+
+// at parses "2006-01-02 15:04" as Warsaw local time.
+func at(t *testing.T, s string) time.Time {
+	t.Helper()
+	v, err := time.ParseInLocation("2006-01-02 15:04", s, warsaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+
+// newTestApp builds an app on an in-memory store; mutate adjusts the config.
+func newTestApp(t *testing.T, cal Calendar, mutate func(*config.Config)) (*App, *fakeSender, *store.Store) {
+	t.Helper()
+	cfg := testConfig()
+	if mutate != nil {
+		mutate(cfg)
+	}
+	st := openStore(t)
+	send := &fakeSender{}
+	a, err := New(context.Background(), st, send, cal, cfg, discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return a, send, st
+}
+
+func put(t *testing.T, st *store.Store, events ...store.Event) {
+	t.Helper()
+	if err := st.UpsertEvents(context.Background(), events); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func openStore(t *testing.T) *store.Store {
@@ -46,7 +98,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 	ctx := context.Background()
 	st := openStore(t)
 
-	a, err := New(ctx, st, &fakeSender{}, testConfig(), discard)
+	a, err := New(ctx, st, &fakeSender{}, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +110,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 	}
 
 	// Restart with the same database: state wins over config.
-	a, err = New(ctx, st, &fakeSender{}, testConfig(), discard)
+	a, err = New(ctx, st, &fakeSender{}, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +121,7 @@ func TestTZSurvivesRestart(t *testing.T) {
 
 func TestSetTZRejectsUnknownZone(t *testing.T) {
 	ctx := context.Background()
-	a, err := New(ctx, openStore(t), &fakeSender{}, testConfig(), discard)
+	a, err := New(ctx, openStore(t), &fakeSender{}, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +136,7 @@ func TestSetTZRejectsUnknownZone(t *testing.T) {
 func TestHandleText(t *testing.T) {
 	ctx := context.Background()
 	send := &fakeSender{}
-	a, err := New(ctx, openStore(t), send, testConfig(), discard)
+	a, err := New(ctx, openStore(t), send, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +160,7 @@ func TestLangSurvivesRestart(t *testing.T) {
 	ctx := context.Background()
 	st := openStore(t)
 
-	a, err := New(ctx, st, &fakeSender{}, testConfig(), discard)
+	a, err := New(ctx, st, &fakeSender{}, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +174,7 @@ func TestLangSurvivesRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	a, err = New(ctx, st, &fakeSender{}, testConfig(), discard)
+	a, err = New(ctx, st, &fakeSender{}, nil, testConfig(), discard)
 	if err != nil {
 		t.Fatal(err)
 	}
