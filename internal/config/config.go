@@ -91,6 +91,10 @@ func parse(b []byte) (*Config, error) {
 	if err := c.checkClocks(); err != nil {
 		return nil, err
 	}
+	// HH:MM strings compare correctly as text.
+	if c.Digest.At >= c.Reminders.EveningAt {
+		return nil, fmt.Errorf("digest.at %s must be before reminders.evening_at %s", c.Digest.At, c.Reminders.EveningAt)
+	}
 	return &c, nil
 }
 

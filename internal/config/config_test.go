@@ -46,6 +46,7 @@ func TestParseRejects(t *testing.T) {
 		{"unsupported language", `lang: ru`, `lang: es`, "lang"},
 		{"missing language", `lang: ru`, ``, "lang"},
 		{"non-positive offset", `[60, 15]`, `[60, 0]`, "event_offsets_min"},
+		{"digest after evening", `  at: "07:30"`, `  at: "21:00"`, "must be before"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
