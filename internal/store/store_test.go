@@ -129,3 +129,19 @@ func TestStateAccessors(t *testing.T) {
 		t.Fatalf("EveningMessageID after clear = %d", id)
 	}
 }
+
+func TestUnfire(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 9, 29, 5, 30, 0, 0, time.UTC)
+
+	if ok, _ := s.TryFire(ctx, "digest", "2026-09-29", now); !ok {
+		t.Fatal("first TryFire = false")
+	}
+	if err := s.Unfire(ctx, "digest", "2026-09-29"); err != nil {
+		t.Fatal(err)
+	}
+	if ok, _ := s.TryFire(ctx, "digest", "2026-09-29", now); !ok {
+		t.Fatal("TryFire after Unfire = false, the job must be able to run again")
+	}
+}

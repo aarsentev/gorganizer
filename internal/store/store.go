@@ -114,3 +114,11 @@ func (s *Store) TryFire(ctx context.Context, job, day string, now time.Time) (bo
 	}
 	return n == 1, nil
 }
+
+// Unfire removes the mark so the job runs again, used when the job failed after TryFire.
+func (s *Store) Unfire(ctx context.Context, job, day string) error {
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM jobs_fired WHERE job = ? AND day = ?", job, day); err != nil {
+		return fmt.Errorf("unfire %s %s: %w", job, day, err)
+	}
+	return nil
+}

@@ -73,12 +73,6 @@ func TestUpsertAndQueryTimed(t *testing.T) {
 		t.Fatalf("after update = %+v", got)
 	}
 
-	if err := s.ClearEvents(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if got, _ := s.TimedEventsBetween(ctx, base, base.Add(24*time.Hour)); len(got) != 0 {
-		t.Fatalf("after clear = %v", ids(got))
-	}
 }
 
 func TestAllDayEventsOn(t *testing.T) {
@@ -160,5 +154,32 @@ func TestSent(t *testing.T) {
 	}
 	if sent, _ := s.WasSent(ctx, "seminar", start, "60m"); !sent {
 		t.Fatal("forgetting the message must keep the sent mark")
+	}
+}
+
+func TestReplaceEvents(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	base := time.Date(2026, 9, 29, 7, 0, 0, 0, time.UTC)
+
+	if err := s.UpsertEvents(ctx, []Event{
+		{ID: "old", Title: "Old", Start: base},
+		{ID: "kept", Title: "Kept", Start: base.Add(time.Hour)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ReplaceEvents(ctx, []Event{
+		{ID: "kept", Title: "Kept, renamed", Start: base.Add(time.Hour)},
+		{ID: "new", Title: "New", Start: base.Add(2 * time.Hour)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.TimedEventsBetween(ctx, base, base.Add(24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !equal(ids(got), []string{"kept", "new"}) || got[0].Title != "Kept, renamed" {
+		t.Fatalf("after replace = %+v", got)
 	}
 }

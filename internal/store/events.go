@@ -24,11 +24,27 @@ type Event struct {
 
 // UpsertEvents applies a batch of changes from a sync in one transaction.
 func (s *Store) UpsertEvents(ctx context.Context, events []Event) error {
+	return s.writeEvents(ctx, false, events)
+}
+
+// ReplaceEvents swaps the whole cache for the result of a full sync in one transaction,
+// so a concurrent tick never sees a half-empty calendar. Marks in sent are kept.
+func (s *Store) ReplaceEvents(ctx context.Context, events []Event) error {
+	return s.writeEvents(ctx, true, events)
+}
+
+func (s *Store) writeEvents(ctx context.Context, replace bool, events []Event) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("upsert events: %w", err)
+		return fmt.Errorf("write events: %w", err)
 	}
 	defer tx.Rollback()
+
+	if replace {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM events"); err != nil {
+			return fmt.Errorf("replace events: %w", err)
+		}
+	}
 
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO events (id, title, start_utc, end_utc, all_day, location, deleted)
@@ -41,7 +57,7 @@ func (s *Store) UpsertEvents(ctx context.Context, events []Event) error {
 			location = excluded.location,
 			deleted = excluded.deleted`)
 	if err != nil {
-		return fmt.Errorf("upsert events: %w", err)
+		return fmt.Errorf("write events: %w", err)
 	}
 	defer stmt.Close()
 
@@ -52,18 +68,10 @@ func (s *Store) UpsertEvents(ctx context.Context, events []Event) error {
 		}
 		if _, err := stmt.ExecContext(ctx,
 			e.ID, e.Title, e.Start.Unix(), end, e.AllDay, e.Location, e.Deleted); err != nil {
-			return fmt.Errorf("upsert event %s: %w", e.ID, err)
+			return fmt.Errorf("write event %s: %w", e.ID, err)
 		}
 	}
 	return tx.Commit()
-}
-
-// ClearEvents drops the cache before a full resync. Marks in sent are kept on purpose.
-func (s *Store) ClearEvents(ctx context.Context) error {
-	if _, err := s.db.ExecContext(ctx, "DELETE FROM events"); err != nil {
-		return fmt.Errorf("clear events: %w", err)
-	}
-	return nil
 }
 
 // TimedEventsBetween returns non-deleted timed events with from <= start < to.
