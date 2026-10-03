@@ -11,7 +11,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Languages the interface is designed for. Only ru has texts so far, the rest fall back to it.
+// Anchors are the named times "/task ... evening" and the day review rely on.
+var Anchors = []string{"morning", "afternoon", "evening", "eod"}
+
+// Languages the interface is designed for. ru and en have texts, the rest fall back to ru.
 var Languages = []string{"ru", "en", "fr", "de", "pl"}
 
 type Config struct {
@@ -86,6 +89,11 @@ func parse(b []byte) (*Config, error) {
 	for _, m := range c.Reminders.EventOffsetsMin {
 		if m <= 0 {
 			return nil, fmt.Errorf("reminders.event_offsets_min: %d is not positive", m)
+		}
+	}
+	for _, name := range Anchors {
+		if _, ok := c.Anchors[name]; !ok {
+			return nil, fmt.Errorf("anchors.%s is missing", name)
 		}
 	}
 	if err := c.checkClocks(); err != nil {

@@ -10,7 +10,10 @@ const valid = `
 tz: Europe/Warsaw
 lang: ru
 anchors:
+  morning: "09:00"
+  afternoon: "14:00"
   evening: "18:00"
+  eod: "21:00"
 quiet_hours:
   from: "00:00"
   to: "07:00"
@@ -46,6 +49,7 @@ func TestParseRejects(t *testing.T) {
 		{"unsupported language", `lang: ru`, `lang: es`, "lang"},
 		{"missing language", `lang: ru`, ``, "lang"},
 		{"non-positive offset", `[60, 15]`, `[60, 0]`, "event_offsets_min"},
+		{"missing anchor", `  eod: "21:00"`, ``, "anchors.eod"},
 		{"digest after evening", `  at: "07:30"`, `  at: "21:00"`, "must be before"},
 	}
 	for _, c := range cases {
