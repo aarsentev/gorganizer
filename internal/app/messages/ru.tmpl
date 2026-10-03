@@ -24,11 +24,53 @@
 {{end}}
 
 {{define "digest"}}
-☀️ Сегодня, {{date .Day}} — {{len .Events}} {{plural (len .Events) "событие" "события" "событий"}}:
+☀️ Сегодня, {{date .Day}}
+{{- if .Events}} — {{len .Events}} {{plural (len .Events) "событие" "события" "событий"}}:
 {{range .Events}}• {{template "event_line" .}}
+{{end}}
+{{- else}}, событий нет
+{{end}}
+{{- if .Tasks}}
+Задачи:
+{{range .Tasks}}☐ {{.Title}}
+{{end}}
+{{- end}}
+{{end}}
+
+{{define "when"}}{{if .Today}}сегодня{{else if .Tomorrow}}завтра{{else}}{{date .T}}{{end}} в {{clock .T}}{{end}}
+
+{{define "task_card"}}
+☐ {{.Title}}
+Напомню {{template "when" .When}}, итог дня в {{clock .Checkin}}
+{{end}}
+
+{{define "task_usage"}}Пример: /task забрать запчасть вечером
+Время в конце: утром, днём, вечером, 18:30, можно с «завтра». Без времени — в конце дня.{{end}}
+{{define "task_cancelled"}}✕ {{.Title}} — отменено{{end}}
+{{define "task_reminder"}}⏰ {{.Title}}{{end}}
+{{define "task_done"}}☑ {{.Title}}{{end}}
+{{define "task_moved"}}⏰ {{.Title}} → {{template "when" .When}}{{end}}
+
+{{define "checkin"}}
+🌙 Итог дня:
+{{range .Tasks}}{{.N}}. {{template "checkin_mark" .}} {{.Title}}{{if eq .State "moved"}} ({{template "when" .When}}){{end}}
 {{end}}
 {{end}}
 
-{{define "digest_empty"}}
-☀️ Сегодня, {{date .Day}}, событий нет
-{{end}}
+{{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
+
+{{define "btn_ok"}}✓ Ок{{end}}
+{{define "btn_time"}}✎ Время{{end}}
+{{define "btn_cancel"}}✕ Отмена{{end}}
+{{define "btn_done"}}Сделано{{end}}
+{{define "btn_hour"}}Через час{{end}}
+{{define "btn_at"}}В {{clock .}}{{end}}
+{{define "btn_tomorrow"}}На завтра{{end}}
+{{define "btn_morning"}}Утром{{end}}
+{{define "btn_afternoon"}}Днём{{end}}
+{{define "btn_evening"}}Вечером{{end}}
+{{define "btn_eod"}}В конце дня{{end}}
+{{define "btn_chk_done"}}{{.}} ✓{{end}}
+{{define "btn_chk_tomorrow"}}{{.}} → завтра{{end}}
+{{define "btn_chk_delete"}}{{.}} ✕{{end}}
+{{define "btn_chk_state"}}{{.N}} {{template "checkin_mark" .}}{{end}}

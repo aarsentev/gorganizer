@@ -3,11 +3,14 @@ package app
 import (
 	"context"
 	"time"
+
+	"go-organizer/internal/store"
 )
 
 const (
 	jobDigest  = "digest"
 	jobEvening = "evening"
+	jobCheckin = "checkin"
 )
 
 // dailyJobs: "local time >= X and not done today", never "exactly X", so a restart
@@ -24,6 +27,9 @@ func (a *App) dailyJobs(ctx context.Context, now time.Time) {
 	}
 	if m >= eveningAt {
 		a.fire(ctx, jobEvening, local, now, a.evening)
+	}
+	if m >= clockMinutes(a.cfg.Anchors["eod"]) {
+		a.fire(ctx, jobCheckin, local, now, a.checkin)
 	}
 }
 
@@ -49,7 +55,22 @@ func (a *App) fire(ctx context.Context, job string, local, now time.Time, run fu
 // evening sends tomorrow's events. Its id is kept so the morning digest can delete it.
 func (a *App) evening(ctx context.Context, local time.Time) error {
 	tomorrow := midnight(local).AddDate(0, 0, 1)
-	id, err := a.sendDay(ctx, tomorrow, "evening", "evening_empty")
+	events, err := a.dayEvents(ctx, tomorrow)
+	if err != nil {
+		return err
+	}
+	block := "evening"
+	if len(events) == 0 {
+		block = "evening_empty"
+	}
+	text, err := a.render(block, struct {
+		Day    time.Time
+		Events []eventView
+	}{tomorrow, events})
+	if err != nil {
+		return err
+	}
+	id, err := a.send.Send(ctx, a.cfg.ChatID, text)
 	if err != nil {
 		return err
 	}
@@ -58,11 +79,27 @@ func (a *App) evening(ctx context.Context, local time.Time) error {
 	return a.store.SetEveningMessageID(ctx, id)
 }
 
-// digest sends today's events, then removes the evening message it replaces.
-// Send first: if sending fails, last evening's message stays.
+// digest sends today's events and open tasks, then removes the evening message
+// it replaces. Send first: if sending fails, last evening's message stays.
 func (a *App) digest(ctx context.Context, local time.Time) error {
 	today := midnight(local)
-	if _, err := a.sendDay(ctx, today, "digest", "digest_empty"); err != nil {
+	events, err := a.dayEvents(ctx, today)
+	if err != nil {
+		return err
+	}
+	tasks, err := a.store.OpenTasksBefore(ctx, today.AddDate(0, 0, 1))
+	if err != nil {
+		return err
+	}
+	text, err := a.render("digest", struct {
+		Day    time.Time
+		Events []eventView
+		Tasks  []store.Task
+	}{today, events, tasks})
+	if err != nil {
+		return err
+	}
+	if _, err := a.send.Send(ctx, a.cfg.ChatID, text); err != nil {
 		return err
 	}
 	a.deleteEvening(ctx)
@@ -70,24 +107,6 @@ func (a *App) digest(ctx context.Context, local time.Time) error {
 		a.cleanupReminders(ctx, today)
 	}
 	return nil
-}
-
-func (a *App) sendDay(ctx context.Context, day time.Time, block, emptyBlock string) (int64, error) {
-	events, err := a.dayEvents(ctx, day)
-	if err != nil {
-		return 0, err
-	}
-	if len(events) == 0 {
-		block = emptyBlock
-	}
-	text, err := a.render(block, struct {
-		Day    time.Time
-		Events []eventView
-	}{day, events})
-	if err != nil {
-		return 0, err
-	}
-	return a.send.Send(ctx, a.cfg.ChatID, text)
 }
 
 // dayEvents lists all-day events first, then timed ones by start, for a local day.

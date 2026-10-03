@@ -11,25 +11,45 @@ import (
 
 	"go-organizer/internal/config"
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 // fakeSender records what the bot would do in Telegram, in call order.
 type fakeSender struct {
 	sent      []string
+	keyboards [][][]tg.Button // keyboard of each sent message, nil for plain ones
+	edits     []edit
 	deleted   []int64
-	ops       []string // "send:<id>" and "delete:<id>"
+	ops       []string // "send:<id>", "edit:<id>" and "delete:<id>"
 	failSends int      // the next N sends fail, as if Telegram were down
 }
 
-func (f *fakeSender) Send(_ context.Context, _ int64, text string) (int64, error) {
+type edit struct {
+	messageID int64
+	text      string
+	keyboard  [][]tg.Button
+}
+
+func (f *fakeSender) Send(ctx context.Context, chatID int64, text string) (int64, error) {
+	return f.SendButtons(ctx, chatID, text, nil)
+}
+
+func (f *fakeSender) SendButtons(_ context.Context, _ int64, text string, keyboard [][]tg.Button) (int64, error) {
 	if f.failSends > 0 {
 		f.failSends--
 		return 0, errors.New("telegram is down")
 	}
 	f.sent = append(f.sent, text)
+	f.keyboards = append(f.keyboards, keyboard)
 	id := int64(len(f.sent))
 	f.ops = append(f.ops, fmt.Sprintf("send:%d", id))
 	return id, nil
+}
+
+func (f *fakeSender) Edit(_ context.Context, _, messageID int64, text string, keyboard [][]tg.Button) error {
+	f.edits = append(f.edits, edit{messageID, text, keyboard})
+	f.ops = append(f.ops, fmt.Sprintf("edit:%d", messageID))
+	return nil
 }
 
 func (f *fakeSender) Delete(_ context.Context, _, messageID int64) error {
@@ -46,6 +66,7 @@ func testConfig() *config.Config {
 	c.Reminders.EventOffsetsMin = []int{60}
 	c.Reminders.EveningAt = "20:00"
 	c.Digest.At = "07:30"
+	c.Anchors = map[string]string{"morning": "09:00", "afternoon": "14:00", "evening": "18:00", "eod": "21:00"}
 	return c
 }
 

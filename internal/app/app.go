@@ -10,11 +10,14 @@ import (
 
 	"go-organizer/internal/config"
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 // Sender is implemented by tg.
 type Sender interface {
 	Send(ctx context.Context, chatID int64, text string) (messageID int64, err error)
+	SendButtons(ctx context.Context, chatID int64, text string, keyboard [][]tg.Button) (messageID int64, err error)
+	Edit(ctx context.Context, chatID, messageID int64, text string, keyboard [][]tg.Button) error
 	Delete(ctx context.Context, chatID, messageID int64) error
 }
 
@@ -99,4 +102,14 @@ func (a *App) SetLang(ctx context.Context, lang string) error {
 // render is the only way to produce a user-facing text.
 func (a *App) render(name string, data any) (string, error) {
 	return a.texts.render(a.Lang(), name, data)
+}
+
+// label renders a button caption; a broken template must not hide the button.
+func (a *App) label(name string, data any) string {
+	text, err := a.render(name, data)
+	if err != nil {
+		a.log.Error("render label", "err", err)
+		return name
+	}
+	return text
 }

@@ -29,6 +29,7 @@ func (a *App) Tick(ctx context.Context, now time.Time) {
 		return
 	}
 	a.eventReminders(ctx, now)
+	a.taskReminders(ctx, now)
 	a.dailyJobs(ctx, now)
 }
 

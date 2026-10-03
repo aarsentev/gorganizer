@@ -16,9 +16,9 @@ import (
 func TestWhitelist(t *testing.T) {
 	var got []Message
 	c := &Client{
-		allowed: 42,
-		log:     slog.New(slog.NewTextHandler(io.Discard, nil)),
-		handler: func(_ context.Context, m Message) { got = append(got, m) },
+		allowed:  42,
+		log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		handlers: Handlers{Text: func(_ context.Context, m Message) { got = append(got, m) }},
 	}
 
 	updates := []*models.Update{
@@ -54,6 +54,8 @@ func fakeTelegram(t *testing.T, calls *[]string, bodies *[]map[string]any) *Clie
 		switch method {
 		case "sendMessage":
 			w.Write([]byte(`{"ok":true,"result":{"message_id":777,"date":0,"chat":{"id":42,"type":"private"}}}`))
+		case "answerCallbackQuery", "editMessageText":
+			w.Write([]byte(`{"ok":true,"result":true}`))
 		case "deleteMessage":
 			if body["message_id"] == "404" {
 				w.Write([]byte(`{"ok":false,"error_code":400,"description":"Bad Request: message to delete not found"}`))
@@ -105,5 +107,73 @@ func TestDelete(t *testing.T) {
 
 	if err := c.Delete(ctx, 42, 404); err == nil {
 		t.Fatal("deleting a missing message must return an error")
+	}
+}
+
+func TestSendButtonsAndEdit(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+	ctx := context.Background()
+
+	keyboard := [][]Button{{{Text: "Done", Data: "task:17:done"}, {Text: "In an hour", Data: "task:17:hour"}}}
+	if _, err := c.SendButtons(ctx, 42, "Pick up the part", keyboard); err != nil {
+		t.Fatal(err)
+	}
+	want := `{"inline_keyboard":[[{"text":"Done","callback_data":"task:17:done"},{"text":"In an hour","callback_data":"task:17:hour"}]]}`
+	if bodies[0]["reply_markup"] != want {
+		t.Fatalf("reply_markup = %v\nwant %s", bodies[0]["reply_markup"], want)
+	}
+
+	// Editing without a keyboard removes the buttons: no reply_markup at all.
+	if err := c.Edit(ctx, 42, 777, "Done: pick up the part", nil); err != nil {
+		t.Fatal(err)
+	}
+	if calls[1] != "editMessageText" || bodies[1]["message_id"] != "777" || bodies[1]["text"] != "Done: pick up the part" {
+		t.Fatalf("edit = %s %v", calls[1], bodies[1])
+	}
+	if _, ok := bodies[1]["reply_markup"]; ok {
+		t.Fatalf("edit without keyboard sent reply_markup %v", bodies[1]["reply_markup"])
+	}
+}
+
+func TestCallback(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+	var got []Callback
+	c.handlers = Handlers{Callback: func(_ context.Context, cb Callback) { got = append(got, cb) }}
+
+	press := func(userID int64) {
+		c.onUpdate(context.Background(), nil, &models.Update{CallbackQuery: &models.CallbackQuery{
+			ID:   "q1",
+			From: models.User{ID: userID},
+			Data: "task:17:done",
+			Message: models.MaybeInaccessibleMessage{Message: &models.Message{
+				ID:   777,
+				Chat: models.Chat{ID: 42},
+				ReplyMarkup: &models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{
+					{{Text: "Done", CallbackData: "task:17:done"}},
+				}},
+			}},
+		}})
+	}
+
+	press(7) // someone else pressing a forwarded message
+	if len(got) != 0 || len(calls) != 0 {
+		t.Fatalf("stranger's press reached the app: %v, calls %v", got, calls)
+	}
+
+	press(42)
+	if len(got) != 1 {
+		t.Fatalf("callbacks = %v", got)
+	}
+	cb := got[0]
+	if cb.ChatID != 42 || cb.MessageID != 777 || cb.Data != "task:17:done" ||
+		len(cb.Keyboard) != 1 || cb.Keyboard[0][0] != (Button{Text: "Done", Data: "task:17:done"}) {
+		t.Fatalf("callback = %+v", cb)
+	}
+	if len(calls) != 1 || calls[0] != "answerCallbackQuery" || bodies[0]["callback_query_id"] != "q1" {
+		t.Fatalf("calls = %v %v, want the press answered", calls, bodies)
 	}
 }

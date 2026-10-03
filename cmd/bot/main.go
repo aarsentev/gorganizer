@@ -70,8 +70,13 @@ func run() error {
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		return tgClient.Run(ctx, func(ctx context.Context, m tg.Message) {
-			a.HandleText(ctx, time.Now(), m.ChatID, m.Text)
+		return tgClient.Run(ctx, tg.Handlers{
+			Text: func(ctx context.Context, m tg.Message) {
+				a.HandleText(ctx, time.Now(), m.ChatID, m.Text)
+			},
+			Callback: func(ctx context.Context, cb tg.Callback) {
+				a.HandleCallback(ctx, time.Now(), cb)
+			},
 		})
 	})
 	g.Go(func() error { return app.Every(ctx, 5*time.Minute, a.Sync) })

@@ -24,11 +24,53 @@
 {{end}}
 
 {{define "digest"}}
-☀️ Today, {{date .Day}} — {{len .Events}} {{plural (len .Events) "event" "events"}}:
+☀️ Today, {{date .Day}}
+{{- if .Events}} — {{len .Events}} {{plural (len .Events) "event" "events"}}:
 {{range .Events}}• {{template "event_line" .}}
+{{end}}
+{{- else}}, no events
+{{end}}
+{{- if .Tasks}}
+Tasks:
+{{range .Tasks}}☐ {{.Title}}
+{{end}}
+{{- end}}
+{{end}}
+
+{{define "when"}}{{if .Today}}today{{else if .Tomorrow}}tomorrow{{else}}{{date .T}}{{end}} at {{clock .T}}{{end}}
+
+{{define "task_card"}}
+☐ {{.Title}}
+Reminder {{template "when" .When}}, day review at {{clock .Checkin}}
+{{end}}
+
+{{define "task_usage"}}Example: /task pick up the part evening
+Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow". No time means end of day.{{end}}
+{{define "task_cancelled"}}✕ {{.Title}} — cancelled{{end}}
+{{define "task_reminder"}}⏰ {{.Title}}{{end}}
+{{define "task_done"}}☑ {{.Title}}{{end}}
+{{define "task_moved"}}⏰ {{.Title}} → {{template "when" .When}}{{end}}
+
+{{define "checkin"}}
+🌙 Day review:
+{{range .Tasks}}{{.N}}. {{template "checkin_mark" .}} {{.Title}}{{if eq .State "moved"}} ({{template "when" .When}}){{end}}
 {{end}}
 {{end}}
 
-{{define "digest_empty"}}
-☀️ Today, {{date .Day}}, no events
-{{end}}
+{{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
+
+{{define "btn_ok"}}✓ OK{{end}}
+{{define "btn_time"}}✎ Time{{end}}
+{{define "btn_cancel"}}✕ Cancel{{end}}
+{{define "btn_done"}}Done{{end}}
+{{define "btn_hour"}}In an hour{{end}}
+{{define "btn_at"}}At {{clock .}}{{end}}
+{{define "btn_tomorrow"}}Tomorrow{{end}}
+{{define "btn_morning"}}Morning{{end}}
+{{define "btn_afternoon"}}Afternoon{{end}}
+{{define "btn_evening"}}Evening{{end}}
+{{define "btn_eod"}}End of day{{end}}
+{{define "btn_chk_done"}}{{.}} ✓{{end}}
+{{define "btn_chk_tomorrow"}}{{.}} → tomorrow{{end}}
+{{define "btn_chk_delete"}}{{.}} ✕{{end}}
+{{define "btn_chk_state"}}{{.N}} {{template "checkin_mark" .}}{{end}}

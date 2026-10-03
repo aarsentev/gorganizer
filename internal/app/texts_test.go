@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go-organizer/internal/config"
+	"go-organizer/internal/store"
 )
 
 func TestPluralRules(t *testing.T) {
@@ -36,6 +37,7 @@ func TestPluralRules(t *testing.T) {
 type dayEvents struct {
 	Day    time.Time
 	Events []eventView
+	Tasks  []store.Task
 }
 
 type reminder struct {
@@ -56,6 +58,18 @@ func renderSamples() map[string]struct {
 	birthday := eventView{Title: "Birthday", Start: day, AllDay: true}
 	untitled := eventView{Start: at(10, 0)}
 
+	tasks := []store.Task{{Title: "Pick up the part"}, {Title: "Call the bank"}}
+	today := whenView{T: at(18, 0), Today: true}
+	tomorrow := whenView{T: at(18, 0).AddDate(0, 0, 1), Tomorrow: true}
+	later := whenView{T: at(9, 0).AddDate(0, 0, 3)}
+	card := func(w whenView) taskView { return taskView{Title: "Pick up the part", When: w, Checkin: at(21, 0)} }
+	checkin := struct{ Tasks []checkinLine }{[]checkinLine{
+		{N: 1, Title: "Pick up the part", State: "open"},
+		{N: 2, Title: "Call the bank", State: "done"},
+		{N: 3, Title: "Renew passport", State: "moved", When: tomorrow},
+		{N: 4, Title: "Old idea", State: "cancelled"},
+	}}
+
 	type sample = struct {
 		block string
 		data  any
@@ -68,12 +82,20 @@ func renderSamples() map[string]struct {
 		"reminder with location":    {"reminder", reminder{seminar, 60}},
 		"reminder without location": {"reminder", reminder{doctor, 60}},
 		"untitled reminder":         {"reminder", reminder{untitled, 15}},
-		"evening":                   {"evening", dayEvents{day, []eventView{birthday, seminar, doctor}}},
+		"evening":                   {"evening", dayEvents{Day: day, Events: []eventView{birthday, seminar, doctor}}},
 		"evening empty":             {"evening_empty", dayEvents{Day: day}},
-		"digest, one event":         {"digest", dayEvents{day, []eventView{seminar}}},
-		"digest, three events":      {"digest", dayEvents{day, []eventView{birthday, seminar, doctor}}},
-		"digest, five events":       {"digest", dayEvents{day, []eventView{doctor, doctor, doctor, doctor, doctor}}},
-		"digest empty":              {"digest_empty", dayEvents{Day: day}},
+		"digest, one event":         {"digest", dayEvents{Day: day, Events: []eventView{seminar}}},
+		"digest, three events":      {"digest", dayEvents{Day: day, Events: []eventView{birthday, seminar, doctor}}},
+		"digest, five events":       {"digest", dayEvents{Day: day, Events: []eventView{doctor, doctor, doctor, doctor, doctor}}},
+		"digest empty":              {"digest", dayEvents{Day: day}},
+		"digest with tasks":         {"digest", dayEvents{Day: day, Events: []eventView{seminar}, Tasks: tasks}},
+		"digest, only tasks":        {"digest", dayEvents{Day: day, Tasks: tasks[:1]}},
+		"task card today":           {"task_card", card(today)},
+		"task card tomorrow":        {"task_card", card(tomorrow)},
+		"task moved to a date":      {"task_moved", taskView{Title: "Pick up the part", When: later}},
+		"day review":                {"checkin", checkin},
+		"review button":             {"btn_chk_tomorrow", 3},
+		"review state button":       {"btn_chk_state", checkin.Tasks[2]},
 	}
 }
 
@@ -114,6 +136,14 @@ func TestRenderRu(t *testing.T) {
 		"digest, three events":      "☀️ Сегодня, вт, 29 сен — 3 события:\n• весь день Birthday\n• 10:00–11:30 Seminar, Room 5\n• 18:00 Doctor",
 		"digest, five events":       "☀️ Сегодня, вт, 29 сен — 5 событий:" + fiveDoctors,
 		"digest empty":              "☀️ Сегодня, вт, 29 сен, событий нет",
+		"digest with tasks":         "☀️ Сегодня, вт, 29 сен — 1 событие:\n• 10:00–11:30 Seminar, Room 5\n\nЗадачи:\n☐ Pick up the part\n☐ Call the bank",
+		"digest, only tasks":        "☀️ Сегодня, вт, 29 сен, событий нет\n\nЗадачи:\n☐ Pick up the part",
+		"task card today":           "☐ Pick up the part\nНапомню сегодня в 18:00, итог дня в 21:00",
+		"task card tomorrow":        "☐ Pick up the part\nНапомню завтра в 18:00, итог дня в 21:00",
+		"task moved to a date":      "⏰ Pick up the part → пт, 2 окт в 09:00",
+		"day review":                "🌙 Итог дня:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (завтра в 18:00)\n4. ✕ Old idea",
+		"review button":             "3 → завтра",
+		"review state button":       "3 →",
 	})
 }
 
@@ -129,6 +159,14 @@ func TestRenderEn(t *testing.T) {
 		"digest, three events":      "☀️ Today, Tue, Sep 29 — 3 events:\n• all day Birthday\n• 10:00–11:30 Seminar, Room 5\n• 18:00 Doctor",
 		"digest, five events":       "☀️ Today, Tue, Sep 29 — 5 events:" + fiveDoctors,
 		"digest empty":              "☀️ Today, Tue, Sep 29, no events",
+		"digest with tasks":         "☀️ Today, Tue, Sep 29 — 1 event:\n• 10:00–11:30 Seminar, Room 5\n\nTasks:\n☐ Pick up the part\n☐ Call the bank",
+		"digest, only tasks":        "☀️ Today, Tue, Sep 29, no events\n\nTasks:\n☐ Pick up the part",
+		"task card today":           "☐ Pick up the part\nReminder today at 18:00, day review at 21:00",
+		"task card tomorrow":        "☐ Pick up the part\nReminder tomorrow at 18:00, day review at 21:00",
+		"task moved to a date":      "⏰ Pick up the part → Fri, Oct 2 at 09:00",
+		"day review":                "🌙 Day review:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (tomorrow at 18:00)\n4. ✕ Old idea",
+		"review button":             "3 → tomorrow",
+		"review state button":       "3 →",
 	})
 }
 
@@ -190,6 +228,20 @@ func TestLanguageFiles(t *testing.T) {
 	for _, lang := range config.Languages {
 		if !slices.Contains(files, "messages/"+lang+".tmpl") {
 			t.Logf("%s: no messages file yet, everything falls back to %s", lang, baseLang)
+		}
+	}
+}
+
+// TestReadyLanguagesAreComplete: ru and en are finished translations, a new block
+// must be added to both.
+func TestReadyLanguagesAreComplete(t *testing.T) {
+	base := blocks(t, "messages/"+baseLang+".tmpl")
+	for _, lang := range []string{"en"} {
+		have := blocks(t, "messages/"+lang+".tmpl")
+		for _, name := range base {
+			if !slices.Contains(have, name) {
+				t.Errorf("%s: block %q is missing", lang, name)
+			}
 		}
 	}
 }
