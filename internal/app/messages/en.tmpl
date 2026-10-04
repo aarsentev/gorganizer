@@ -45,7 +45,7 @@ Reminder {{template "when" .When}}, day review at {{clock .Checkin}}
 {{end}}
 
 {{define "task_usage"}}Example: /task pick up the part evening
-Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow". No time means end of day.{{end}}
+Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow". No time means evening.{{end}}
 {{define "task_cancelled"}}✕ {{.Title}} — cancelled{{end}}
 {{define "task_reminder"}}⏰ {{.Title}}{{end}}
 {{define "task_done"}}☑ {{.Title}}{{end}}

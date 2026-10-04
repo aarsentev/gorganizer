@@ -30,7 +30,8 @@ var (
 var errNoTitle = errors.New("no title")
 
 // parseTask splits "/task" arguments into a title and a reminder time.
-// Recognized tail: [tomorrow] [anchor | HH:MM] in either order; default is eod.
+// Recognized tail: [tomorrow] [anchor | HH:MM] in either order; default is evening,
+// so the reminder does not land on the day review at eod.
 // A time that has already passed today moves to tomorrow.
 func (a *App) parseTask(args string, now time.Time) (string, time.Time, error) {
 	words := strings.Fields(args)
@@ -60,7 +61,7 @@ tail:
 		return "", time.Time{}, errNoTitle
 	}
 	if clock == "" {
-		clock = a.cfg.Anchors["eod"]
+		clock = a.cfg.Anchors["evening"]
 	}
 
 	return capitalize(strings.Join(words, " ")), a.nextAt(now, clock, tomorrow), nil

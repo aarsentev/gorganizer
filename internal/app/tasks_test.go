@@ -18,13 +18,13 @@ func TestParseTask(t *testing.T) {
 	}{
 		{"забрать запчасть вечером", "Забрать запчасть", "2026-09-29 18:00"},
 		{"pick up the part evening", "Pick up the part", "2026-09-29 18:00"},
-		{"buy bread", "Buy bread", "2026-09-29 21:00"},
+		{"buy bread", "Buy bread", "2026-09-29 18:00"},
 		{"call the bank 9:30", "Call the bank", "2026-09-30 09:30"},
 		{"call the bank 14:15", "Call the bank", "2026-09-29 14:15"},
 		{"позвонить завтра утром", "Позвонить", "2026-09-30 09:00"},
 		{"позвонить утром завтра", "Позвонить", "2026-09-30 09:00"},
-		{"renew passport tomorrow", "Renew passport", "2026-09-30 21:00"},
-		{"pick up tomorrow evening part", "Pick up tomorrow evening part", "2026-09-29 21:00"},
+		{"renew passport tomorrow", "Renew passport", "2026-09-30 18:00"},
+		{"pick up tomorrow evening part", "Pick up tomorrow evening part", "2026-09-29 18:00"},
 	}
 	for _, c := range cases {
 		title, remind, err := a.parseTask(c.args, now)
