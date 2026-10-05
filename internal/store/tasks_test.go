@@ -50,7 +50,7 @@ func TestTaskLifecycle(t *testing.T) {
 	if due, _ := s.DueTasks(ctx, now.Add(time.Hour)); !sameIDs(taskIDs(due), []int64{call}) {
 		t.Fatalf("due at +1h = %v, want [%d]", taskIDs(due), call)
 	}
-	if err := s.MarkTaskReminded(ctx, call); err != nil {
+	if err := s.MarkTaskReminded(ctx, call, now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if due, _ := s.DueTasks(ctx, now.Add(6*time.Hour)); !sameIDs(taskIDs(due), []int64{part}) {
@@ -79,6 +79,38 @@ func TestTaskLifecycle(t *testing.T) {
 	}
 	if due, _ := s.DueTasks(ctx, now.Add(72*time.Hour)); !sameIDs(taskIDs(due), []int64{later}) {
 		t.Fatalf("closed tasks must never be due, got %v", taskIDs(due))
+	}
+}
+
+// A reschedule that lands while the old reminder is being sent must not be disarmed by it.
+func TestMarkRemindedAfterReschedule(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)
+	id, _ := s.CreateTask(ctx, "Call the bank", now, now)
+
+	if err := s.RescheduleTask(ctx, id, now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.MarkTaskReminded(ctx, id, now); err != nil {
+		t.Fatal(err)
+	}
+	if due, _ := s.DueTasks(ctx, now.Add(time.Hour)); !sameIDs(taskIDs(due), []int64{id}) {
+		t.Fatalf("due at the new time = %v, want [%d]", taskIDs(due), id)
+	}
+}
+
+func TestOpenTasksDue(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 9, 29, 19, 0, 0, 0, time.UTC)
+	reminded, _ := s.CreateTask(ctx, "Reminded earlier", now.Add(-time.Hour), now)
+	s.MarkTaskReminded(ctx, reminded, now.Add(-time.Hour))
+	dueNow, _ := s.CreateTask(ctx, "Due this very second", now, now)
+	s.CreateTask(ctx, "Still ahead", now.Add(time.Second), now)
+
+	if got, _ := s.OpenTasksDue(ctx, now); !sameIDs(taskIDs(got), []int64{reminded, dueNow}) {
+		t.Fatalf("due = %v, want [%d %d]", taskIDs(got), reminded, dueNow)
 	}
 }
 

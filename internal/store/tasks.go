@@ -56,8 +56,19 @@ func (s *Store) OpenTasksBefore(ctx context.Context, t time.Time) ([]Task, error
 	return s.queryTasks(ctx, "WHERE status = 'open' AND remind_utc < ? ORDER BY remind_utc, id", t.Unix())
 }
 
-func (s *Store) MarkTaskReminded(ctx context.Context, id int64) error {
-	return s.updateTask(ctx, id, "UPDATE tasks SET reminded = 1 WHERE id = ?", id)
+// OpenTasksDue returns open tasks whose reminder time has come, reminded or not.
+func (s *Store) OpenTasksDue(ctx context.Context, now time.Time) ([]Task, error) {
+	return s.queryTasks(ctx, "WHERE status = 'open' AND remind_utc <= ? ORDER BY remind_utc, id", now.Unix())
+}
+
+// MarkTaskReminded disarms the reminder sent for the given time. If the task was
+// rescheduled while the reminder was being sent, the new time stays armed.
+func (s *Store) MarkTaskReminded(ctx context.Context, id int64, remind time.Time) error {
+	if _, err := s.db.ExecContext(ctx,
+		"UPDATE tasks SET reminded = 1 WHERE id = ? AND remind_utc = ?", id, remind.Unix()); err != nil {
+		return fmt.Errorf("update task %d: %w", id, err)
+	}
+	return nil
 }
 
 func (s *Store) SetTaskStatus(ctx context.Context, id int64, status string) error {

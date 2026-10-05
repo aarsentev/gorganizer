@@ -103,6 +103,17 @@ func parse(b []byte) (*Config, error) {
 	if c.Digest.At >= c.Reminders.EveningAt {
 		return nil, fmt.Errorf("digest.at %s must be before reminders.evening_at %s", c.Digest.At, c.Reminders.EveningAt)
 	}
+	// A daily job that falls into quiet hours waits for them to end. If they last past
+	// midnight, they end on the next day and that day's job is silently lost.
+	// The digest needs no check: it is before evening_at.
+	if c.QuietHours.From > c.QuietHours.To {
+		for _, k := range [][2]string{{"reminders.evening_at", c.Reminders.EveningAt}, {"anchors.eod", c.Anchors["eod"]}} {
+			if k[1] >= c.QuietHours.From {
+				return nil, fmt.Errorf("%s %s falls into quiet_hours from %s past midnight: it would never be sent",
+					k[0], k[1], c.QuietHours.From)
+			}
+		}
+	}
 	return &c, nil
 }
 

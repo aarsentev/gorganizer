@@ -255,3 +255,37 @@ func TestSplitCommand(t *testing.T) {
 		}
 	}
 }
+
+// "At 21:00" pressed after 21:00 must not set a time in the past.
+func TestLateEodPressMovesToTomorrow(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	if _, err := st.CreateTask(ctx, "Pick up the part", at(t, "2026-09-29 18:00"), at(t, "2026-09-29 10:00")); err != nil {
+		t.Fatal(err)
+	}
+	a.taskReminders(ctx, at(t, "2026-09-29 18:00"))
+
+	press(a, send, at(t, "2026-09-29 22:00"), 1, "rem:1:eod")
+
+	if task, _ := st.Task(ctx, 1); !task.Remind.Equal(at(t, "2026-09-30 21:00")) {
+		t.Fatalf("remind = %s, want tomorrow 21:00", task.Remind.In(warsaw))
+	}
+	if e := lastEdit(t, send); e.text != "⏰ Pick up the part → завтра в 21:00" {
+		t.Fatalf("after late press = %q", e.text)
+	}
+}
+
+// A task due at the end of the day is in the review and gets no separate reminder.
+func TestTaskAtEodOnlyInReview(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	skipJobs(t, st, "2026-09-29", jobDigest, jobEvening)
+
+	a.HandleText(ctx, at(t, "2026-09-29 10:00"), 42, "/task call mom 21:00")
+	a.Tick(ctx, at(t, "2026-09-29 21:00"))
+	a.Tick(ctx, at(t, "2026-09-29 21:01"))
+
+	if len(send.sent) != 2 || send.sent[1] != "🌙 Итог дня:\n1. ☐ Call mom" {
+		t.Fatalf("sent %q, want the card and the review only", send.sent)
+	}
+}

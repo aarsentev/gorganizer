@@ -51,6 +51,8 @@ func TestParseRejects(t *testing.T) {
 		{"non-positive offset", `[60, 15]`, `[60, 0]`, "event_offsets_min"},
 		{"missing anchor", `  eod: "21:00"`, ``, "anchors.eod"},
 		{"digest after evening", `  at: "07:30"`, `  at: "21:00"`, "must be before"},
+		{"eod in quiet hours past midnight", `  from: "00:00"`, `  from: "20:30"`, "anchors.eod"},
+		{"evening in quiet hours past midnight", `  from: "00:00"`, `  from: "19:00"`, "reminders.evening_at"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -62,6 +64,13 @@ func TestParseRejects(t *testing.T) {
 				t.Fatalf("err = %v, want mention of %q", err, c.wantErr)
 			}
 		})
+	}
+}
+
+// Quiet hours over midnight are fine while the daily jobs come before them.
+func TestParseQuietOverMidnight(t *testing.T) {
+	if _, err := parse([]byte(strings.Replace(valid, `  from: "00:00"`, `  from: "23:00"`, 1))); err != nil {
+		t.Fatal(err)
 	}
 }
 

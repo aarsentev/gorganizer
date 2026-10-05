@@ -29,8 +29,9 @@ func (a *App) Tick(ctx context.Context, now time.Time) {
 		return
 	}
 	a.eventReminders(ctx, now)
-	a.taskReminders(ctx, now)
+	// Daily jobs first: the day review takes in tasks due right now, and a separate ⏰ would repeat it.
 	a.dailyJobs(ctx, now)
+	a.taskReminders(ctx, now)
 }
 
 func (a *App) quiet(now time.Time) bool {

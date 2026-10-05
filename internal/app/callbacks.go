@@ -91,7 +91,8 @@ func (a *App) onReminder(ctx context.Context, now time.Time, cb tg.Callback, t s
 	case "hour":
 		remind = now.Add(time.Hour)
 	case "eod":
-		remind = atClock(midnight(now.In(a.Loc())), a.cfg.Anchors["eod"])
+		// The button may be pressed after the time it offered: then it is tomorrow's.
+		remind = a.nextAt(now, a.cfg.Anchors["eod"], false)
 	case "tomorrow":
 		remind = a.sameTimeTomorrow(t, now)
 	default:

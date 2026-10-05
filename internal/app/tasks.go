@@ -183,7 +183,7 @@ func (a *App) taskReminders(ctx context.Context, now time.Time) {
 			a.log.Error("task reminder", "task_id", t.ID, "err", err)
 			continue // not marked, the next tick retries
 		}
-		if err := a.store.MarkTaskReminded(ctx, t.ID); err != nil {
+		if err := a.store.MarkTaskReminded(ctx, t.ID, t.Remind); err != nil {
 			a.log.Error("task reminder", "task_id", t.ID, "err", err)
 		}
 	}
