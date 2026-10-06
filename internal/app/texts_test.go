@@ -35,9 +35,10 @@ func TestPluralRules(t *testing.T) {
 }
 
 type dayEvents struct {
-	Day    time.Time
-	Events []eventView
-	Tasks  []store.Task
+	Day        time.Time
+	Events     []eventView
+	Tasks      []store.Task
+	NoCalendar bool
 }
 
 type reminder struct {
@@ -90,6 +91,8 @@ func renderSamples() map[string]struct {
 		"digest empty":              {"digest", dayEvents{Day: day}},
 		"digest with tasks":         {"digest", dayEvents{Day: day, Events: []eventView{seminar}, Tasks: tasks}},
 		"digest, only tasks":        {"digest", dayEvents{Day: day, Tasks: tasks[:1]}},
+		"digest, no calendar":       {"digest", dayEvents{Day: day, NoCalendar: true}},
+		"no calendar, tasks":        {"digest", dayEvents{Day: day, Tasks: tasks[:1], NoCalendar: true}},
 		"task card today":           {"task_card", card(today)},
 		"task card tomorrow":        {"task_card", card(tomorrow)},
 		"task moved to a date":      {"task_moved", taskView{Title: "Pick up the part", When: later}},
@@ -138,6 +141,8 @@ func TestRenderRu(t *testing.T) {
 		"digest empty":              "☀️ Сегодня, вт, 29 сен, событий нет",
 		"digest with tasks":         "☀️ Сегодня, вт, 29 сен — 1 событие:\n• 10:00–11:30 Seminar, Room 5\n\nЗадачи:\n☐ Pick up the part\n☐ Call the bank",
 		"digest, only tasks":        "☀️ Сегодня, вт, 29 сен, событий нет\n\nЗадачи:\n☐ Pick up the part",
+		"digest, no calendar":       "☀️ Сегодня, вт, 29 сен, задач нет",
+		"no calendar, tasks":        "☀️ Сегодня, вт, 29 сен\nЗадачи:\n☐ Pick up the part",
 		"task card today":           "☐ Pick up the part\nНапомню сегодня в 18:00, итог дня в 21:00",
 		"task card tomorrow":        "☐ Pick up the part\nНапомню завтра в 18:00, итог дня в 21:00",
 		"task moved to a date":      "⏰ Pick up the part → пт, 2 окт в 09:00",
@@ -161,6 +166,8 @@ func TestRenderEn(t *testing.T) {
 		"digest empty":              "☀️ Today, Tue, Sep 29, no events",
 		"digest with tasks":         "☀️ Today, Tue, Sep 29 — 1 event:\n• 10:00–11:30 Seminar, Room 5\n\nTasks:\n☐ Pick up the part\n☐ Call the bank",
 		"digest, only tasks":        "☀️ Today, Tue, Sep 29, no events\n\nTasks:\n☐ Pick up the part",
+		"digest, no calendar":       "☀️ Today, Tue, Sep 29, no tasks",
+		"no calendar, tasks":        "☀️ Today, Tue, Sep 29\nTasks:\n☐ Pick up the part",
 		"task card today":           "☐ Pick up the part\nReminder today at 18:00, day review at 21:00",
 		"task card tomorrow":        "☐ Pick up the part\nReminder tomorrow at 18:00, day review at 21:00",
 		"task moved to a date":      "⏰ Pick up the part → Fri, Oct 2 at 09:00",

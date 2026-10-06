@@ -16,7 +16,7 @@ func allDay(id, title string, y int, m time.Month, d int) store.Event {
 
 func TestEveningMessageIsReplacedByMorningDigest(t *testing.T) {
 	ctx := context.Background()
-	a, send, st := newTestApp(t, nil, nil)
+	a, send, st := newTestApp(t, withCalendar(), nil)
 	put(t, st,
 		allDay("birthday", "Birthday", 2026, 9, 30),
 		store.Event{ID: "seminar", Title: "Seminar", Start: at(t, "2026-09-30 10:00")},
@@ -70,13 +70,36 @@ func TestEveningWithNothingTomorrow(t *testing.T) {
 
 func TestNoMorningDigestInTheEvening(t *testing.T) {
 	ctx := context.Background()
-	a, send, _ := newTestApp(t, nil, nil)
+	a, send, _ := newTestApp(t, withCalendar(), nil)
 
 	// The bot was down all day and comes back at 20:30: only the evening message makes sense.
 	a.Tick(ctx, at(t, "2026-09-29 20:30"))
 
 	if len(send.sent) != 1 || send.sent[0] != "📅 На завтра ничего нет, отдыхайте" {
 		t.Fatalf("sent %q, want only the evening message", send.sent)
+	}
+}
+
+// Without a calendar the event cache can only be stale: the bot never reads it.
+func TestWithoutCalendarOnlyTasks(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	put(t, st, store.Event{ID: "stale", Title: "Stale", Start: at(t, "2026-09-29 10:00")})
+	if _, err := st.CreateTask(ctx, "Pick up the part", at(t, "2026-09-29 18:00"), at(t, "2026-09-28 12:00")); err != nil {
+		t.Fatal(err)
+	}
+
+	// The digest, the stale event's reminder time, the evening message time.
+	for _, s := range []string{"2026-09-29 07:30", "2026-09-29 09:00", "2026-09-29 20:00"} {
+		a.Tick(ctx, at(t, s))
+	}
+
+	want := []string{
+		"☀️ Сегодня, вт, 29 сен\nЗадачи:\n☐ Pick up the part",
+		"⏰ Pick up the part",
+	}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
 	}
 }
 

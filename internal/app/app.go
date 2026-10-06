@@ -24,7 +24,7 @@ type Sender interface {
 type App struct {
 	store *store.Store
 	send  Sender
-	cal   Calendar // nil: no calendar, Sync does nothing
+	cal   Calendar // nil: no calendar — no sync, no event reminders, no evening message
 	cfg   *config.Config
 	texts *texts
 	log   *slog.Logger

@@ -103,7 +103,7 @@ func TestFailedReminderIsRetried(t *testing.T) {
 
 func TestQuietHoursHoldRemindersUntilMorning(t *testing.T) {
 	ctx := context.Background()
-	a, send, st := newTestApp(t, nil, nil)
+	a, send, st := newTestApp(t, withCalendar(), nil)
 	put(t, st,
 		store.Event{ID: "early", Title: "Early", Start: at(t, "2026-09-29 06:45")},
 		store.Event{ID: "gym", Title: "Gym", Start: at(t, "2026-09-29 07:30")},

@@ -25,7 +25,8 @@
 
 {{define "digest"}}
 ☀️ Today, {{date .Day}}
-{{- if .Events}} — {{len .Events}} {{plural (len .Events) "event" "events"}}:
+{{- if .NoCalendar}}{{if not .Tasks}}, no tasks{{end}}
+{{- else if .Events}} — {{len .Events}} {{plural (len .Events) "event" "events"}}:
 {{range .Events}}• {{template "event_line" .}}
 {{end}}
 {{- else}}, no events

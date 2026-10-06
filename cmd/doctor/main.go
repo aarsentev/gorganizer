@@ -28,43 +28,12 @@ func main() {
 		log.Fatal("config: ", err)
 	}
 
-	cal, err := calendar.NewService(ctx,
-		option.WithAuthCredentialsFile(option.ServiceAccount, cfg.SAFile),
-		option.WithScopes(calendar.CalendarEventsScope))
-	if err != nil {
-		log.Fatal("calendar service: ", err)
-	}
-
 	now := time.Now()
-	list, err := cal.Events.List(cfg.CalendarID).
-		TimeMin(now.Format(time.RFC3339)).
-		TimeMax(now.AddDate(0, 0, 7).Format(time.RFC3339)).
-		SingleEvents(true).OrderBy("startTime").Do()
-	if err != nil {
-		log.Fatal("read calendar (404 — вероятно, в CALENDAR_ID email service account'а): ", err)
+	if cfg.CalendarID == "" {
+		fmt.Println("1–2. Calendar skipped: CALENDAR_ID is empty")
+	} else {
+		checkCalendar(ctx, cfg, now)
 	}
-	for _, e := range list.Items {
-		start := e.Start.DateTime
-		if start == "" {
-			start = e.Start.Date
-		}
-		fmt.Printf("    %s  %s\n", start, e.Summary)
-	}
-	fmt.Printf("1. Calendar read ok: %d events\n", len(list.Items))
-
-	probe := &calendar.Event{
-		Summary: "Organizer doctor",
-		Start:   &calendar.EventDateTime{DateTime: now.Add(time.Hour).Format(time.RFC3339)},
-		End:     &calendar.EventDateTime{DateTime: now.Add(2 * time.Hour).Format(time.RFC3339)},
-	}
-	created, err := cal.Events.Insert(cfg.CalendarID, probe).Do()
-	if err != nil {
-		log.Fatal("Write calendar (403 — need to extend rights): ", err)
-	}
-	if err := cal.Events.Delete(cfg.CalendarID, created.Id).Do(); err != nil {
-		log.Fatal("Delete probe: ", err)
-	}
-	fmt.Println("2. Calendar write ok")
 
 	resp, err := http.PostForm(
 		"https://api.telegram.org/bot"+cfg.BotToken+"/sendMessage",
@@ -98,4 +67,44 @@ func main() {
 		log.Fatal("sqlite: ", err)
 	}
 	fmt.Printf("5. SQLite ok: %s %s, %s\n", cfg.DBPath, ver, runtime.Version())
+}
+
+// checkCalendar reads the next week, then writes and deletes a probe event.
+func checkCalendar(ctx context.Context, cfg *config.Config, now time.Time) {
+	cal, err := calendar.NewService(ctx,
+		option.WithAuthCredentialsFile(option.ServiceAccount, cfg.SAFile),
+		option.WithScopes(calendar.CalendarEventsScope))
+	if err != nil {
+		log.Fatal("calendar service: ", err)
+	}
+
+	list, err := cal.Events.List(cfg.CalendarID).
+		TimeMin(now.Format(time.RFC3339)).
+		TimeMax(now.AddDate(0, 0, 7).Format(time.RFC3339)).
+		SingleEvents(true).OrderBy("startTime").Do()
+	if err != nil {
+		log.Fatal("read calendar (404 — вероятно, в CALENDAR_ID email service account'а): ", err)
+	}
+	for _, e := range list.Items {
+		start := e.Start.DateTime
+		if start == "" {
+			start = e.Start.Date
+		}
+		fmt.Printf("    %s  %s\n", start, e.Summary)
+	}
+	fmt.Printf("1. Calendar read ok: %d events\n", len(list.Items))
+
+	probe := &calendar.Event{
+		Summary: "Organizer doctor",
+		Start:   &calendar.EventDateTime{DateTime: now.Add(time.Hour).Format(time.RFC3339)},
+		End:     &calendar.EventDateTime{DateTime: now.Add(2 * time.Hour).Format(time.RFC3339)},
+	}
+	created, err := cal.Events.Insert(cfg.CalendarID, probe).Do()
+	if err != nil {
+		log.Fatal("Write calendar (403 — need to extend rights): ", err)
+	}
+	if err := cal.Events.Delete(cfg.CalendarID, created.Id).Do(); err != nil {
+		log.Fatal("Delete probe: ", err)
+	}
+	fmt.Println("2. Calendar write ok")
 }

@@ -54,11 +54,16 @@ func run() error {
 		return err
 	}
 
-	// A broken calendar setup is a startup error: silently running without it
+	// No CALENDAR_ID: cal stays a nil interface and the app runs without a calendar.
+	// A calendar that is set but broken is a startup error: silently running without it
 	// would only show up as a reminder that never came.
-	cal, err := gcal.New(ctx, cfg.SAFile, cfg.CalendarID)
-	if err != nil {
-		return err
+	var cal app.Calendar
+	if cfg.CalendarID != "" {
+		client, err := gcal.New(ctx, cfg.SAFile, cfg.CalendarID)
+		if err != nil {
+			return err
+		}
+		cal = client
 	}
 
 	a, err := app.New(ctx, st, tgClient, cal, cfg, log)
@@ -66,7 +71,7 @@ func run() error {
 		return err
 	}
 
-	log.Info("Started", "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath)
+	log.Info("Started", "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath, "calendar", cal != nil)
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {

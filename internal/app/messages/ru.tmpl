@@ -25,7 +25,8 @@
 
 {{define "digest"}}
 ☀️ Сегодня, {{date .Day}}
-{{- if .Events}} — {{len .Events}} {{plural (len .Events) "событие" "события" "событий"}}:
+{{- if .NoCalendar}}{{if not .Tasks}}, задач нет{{end}}
+{{- else if .Events}} — {{len .Events}} {{plural (len .Events) "событие" "события" "событий"}}:
 {{range .Events}}• {{template "event_line" .}}
 {{end}}
 {{- else}}, событий нет

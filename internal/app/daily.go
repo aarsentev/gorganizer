@@ -25,7 +25,8 @@ func (a *App) dailyJobs(ctx context.Context, now time.Time) {
 	if m >= digestAt && m < eveningAt {
 		a.fire(ctx, jobDigest, local, now, a.digest)
 	}
-	if m >= eveningAt {
+	// Without a calendar the evening message would say "nothing tomorrow" every day.
+	if a.cal != nil && m >= eveningAt {
 		a.fire(ctx, jobEvening, local, now, a.evening)
 	}
 	if m >= clockMinutes(a.cfg.Anchors["eod"]) {
@@ -83,19 +84,24 @@ func (a *App) evening(ctx context.Context, local time.Time) error {
 // it replaces. Send first: if sending fails, last evening's message stays.
 func (a *App) digest(ctx context.Context, local time.Time) error {
 	today := midnight(local)
-	events, err := a.dayEvents(ctx, today)
-	if err != nil {
-		return err
+	// Without a calendar the events are unknown, not absent: the digest shows tasks only.
+	var events []eventView
+	if a.cal != nil {
+		var err error
+		if events, err = a.dayEvents(ctx, today); err != nil {
+			return err
+		}
 	}
 	tasks, err := a.store.OpenTasksBefore(ctx, today.AddDate(0, 0, 1))
 	if err != nil {
 		return err
 	}
 	text, err := a.render("digest", struct {
-		Day    time.Time
-		Events []eventView
-		Tasks  []store.Task
-	}{today, events, tasks})
+		Day        time.Time
+		Events     []eventView
+		Tasks      []store.Task
+		NoCalendar bool
+	}{today, events, tasks, a.cal == nil})
 	if err != nil {
 		return err
 	}

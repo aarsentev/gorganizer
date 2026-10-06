@@ -61,11 +61,12 @@ func Load(path string) (*Config, error) {
 	if c.ChatID, err = strconv.ParseInt(raw, 10, 64); err != nil {
 		return nil, fmt.Errorf("TELEGRAM_CHAT_ID: %w", err)
 	}
-	if c.CalendarID, err = env("CALENDAR_ID"); err != nil {
-		return nil, err
-	}
-	if c.SAFile, err = env("GOOGLE_SA_FILE"); err != nil {
-		return nil, err
+	// Without a calendar the bot works with tasks and notes only.
+	c.CalendarID = os.Getenv("CALENDAR_ID")
+	if c.CalendarID != "" {
+		if c.SAFile, err = env("GOOGLE_SA_FILE"); err != nil {
+			return nil, err
+		}
 	}
 	c.DBPath = envOr("DB_PATH", "organizer.db")
 	return c, nil

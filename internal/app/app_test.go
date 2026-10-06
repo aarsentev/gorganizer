@@ -98,6 +98,12 @@ func newTestApp(t *testing.T, cal Calendar, mutate func(*config.Config)) (*App, 
 	return a, send, st
 }
 
+// withCalendar stands for a configured calendar in tests that fill the event cache
+// themselves and never call Sync.
+func withCalendar() Calendar {
+	return &fakeCalendar{}
+}
+
 func put(t *testing.T, st *store.Store, events ...store.Event) {
 	t.Helper()
 	if err := st.UpsertEvents(context.Background(), events); err != nil {

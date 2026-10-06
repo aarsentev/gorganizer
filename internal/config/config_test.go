@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -71,6 +72,43 @@ func TestParseRejects(t *testing.T) {
 func TestParseQuietOverMidnight(t *testing.T) {
 	if _, err := parse([]byte(strings.Replace(valid, `  from: "00:00"`, `  from: "23:00"`, 1))); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLoadCalendarIsOptional(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(valid), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TELEGRAM_TOKEN", "token")
+	t.Setenv("TELEGRAM_CHAT_ID", "42")
+
+	cases := []struct {
+		name, calendarID, saFile, wantErr string
+	}{
+		{"no calendar", "", "", ""},
+		{"calendar", "me@example.com", "sa.json", ""},
+		{"calendar without a key", "me@example.com", "", "GOOGLE_SA_FILE"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Setenv("CALENDAR_ID", c.calendarID)
+			t.Setenv("GOOGLE_SA_FILE", c.saFile)
+
+			cfg, err := Load(path)
+			if c.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("err = %v, want mention of %q", err, c.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.CalendarID != c.calendarID || cfg.SAFile != c.saFile {
+				t.Fatalf("calendar %q, key %q", cfg.CalendarID, cfg.SAFile)
+			}
+		})
 	}
 }
 
