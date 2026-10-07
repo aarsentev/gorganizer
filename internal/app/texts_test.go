@@ -71,6 +71,11 @@ func renderSamples() map[string]struct {
 		{N: 4, Title: "Old idea", State: "cancelled"},
 	}}
 
+	inbox := inboxView{Open: 6, Page: 2, Pages: 3, Notes: []noteLine{
+		{N: 1, Text: "Buy a bulb"},
+		{N: 2, Text: "Call the bank", Done: true},
+	}}
+
 	type sample = struct {
 		block string
 		data  any
@@ -99,6 +104,9 @@ func renderSamples() map[string]struct {
 		"day review":                {"checkin", checkin},
 		"review button":             {"btn_chk_tomorrow", 3},
 		"review state button":       {"btn_chk_state", checkin.Tasks[2]},
+		"inbox page":                {"inbox", inbox},
+		"inbox, one page":           {"inbox", inboxView{Open: 1, Page: 1, Pages: 1, Notes: inbox.Notes[:1]}},
+		"closed note button":        {"btn_note", inbox.Notes[1]},
 	}
 }
 
@@ -149,6 +157,9 @@ func TestRenderRu(t *testing.T) {
 		"day review":                "🌙 Итог дня:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (завтра в 18:00)\n4. ✕ Old idea",
 		"review button":             "3 → завтра",
 		"review state button":       "3 →",
+		"inbox page":                "📥 Ящик: 6 · стр. 2/3\n1. ☐ Buy a bulb\n2. ☑ Call the bank",
+		"inbox, one page":           "📥 Ящик: 1\n1. ☐ Buy a bulb",
+		"closed note button":        "2 ☑",
 	})
 }
 
@@ -174,6 +185,9 @@ func TestRenderEn(t *testing.T) {
 		"day review":                "🌙 Day review:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (tomorrow at 18:00)\n4. ✕ Old idea",
 		"review button":             "3 → tomorrow",
 		"review state button":       "3 →",
+		"inbox page":                "📥 Inbox: 6 · page 2/3\n1. ☐ Buy a bulb\n2. ☑ Call the bank",
+		"inbox, one page":           "📥 Inbox: 1\n1. ☐ Buy a bulb",
+		"closed note button":        "2 ☑",
 	})
 }
 

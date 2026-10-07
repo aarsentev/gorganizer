@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"strconv"
-	"strings"
 	"time"
 
 	"go-organizer/internal/store"
@@ -72,11 +70,7 @@ func (a *App) onCheckin(ctx context.Context, now time.Time, cb tg.Callback, t st
 		if len(row) == 0 {
 			continue
 		}
-		parts := strings.SplitN(row[0].Data, ":", 3)
-		if len(parts) != 3 {
-			continue
-		}
-		if id, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
+		if _, id, _, ok := parseData(row[0].Data); ok {
 			ids = append(ids, id)
 		}
 	}
@@ -107,13 +101,13 @@ func (a *App) renderCheckin(ctx context.Context, ids []int64, now time.Time) (st
 
 		if line.State == store.TaskOpen {
 			keyboard = append(keyboard, []tg.Button{
-				{Text: a.label("btn_chk_done", line.N), Data: taskData("chk", id, "done")},
-				{Text: a.label("btn_chk_tomorrow", line.N), Data: taskData("chk", id, "tomorrow")},
-				{Text: a.label("btn_chk_delete", line.N), Data: taskData("chk", id, "delete")},
+				{Text: a.label("btn_chk_done", line.N), Data: buttonData("chk", id, "done")},
+				{Text: a.label("btn_chk_tomorrow", line.N), Data: buttonData("chk", id, "tomorrow")},
+				{Text: a.label("btn_chk_delete", line.N), Data: buttonData("chk", id, "delete")},
 			})
 		} else {
 			keyboard = append(keyboard, []tg.Button{
-				{Text: a.label("btn_chk_state", line), Data: taskData("chk", id, "noop")},
+				{Text: a.label("btn_chk_state", line), Data: buttonData("chk", id, "noop")},
 			})
 		}
 	}

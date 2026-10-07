@@ -10,8 +10,12 @@ import (
 func (a *App) HandleText(ctx context.Context, now time.Time, chatID int64, text string) {
 	cmd, args := splitCommand(text)
 	switch cmd {
+	case "":
+		a.handleNote(ctx, now, chatID, args)
 	case "/task":
 		a.handleTask(ctx, now, chatID, args)
+	case "/inbox":
+		a.handleInbox(ctx, chatID)
 	case "/tz":
 		loc := a.Loc()
 		a.replyBlock(ctx, chatID, "tz", struct {
@@ -19,8 +23,7 @@ func (a *App) HandleText(ctx context.Context, now time.Time, chatID int64, text 
 			Now  time.Time
 		}{loc.String(), now.In(loc)})
 	default:
-		// Until notes arrive (stage 3b) plain text is echoed back.
-		a.reply(ctx, chatID, text)
+		a.replyBlock(ctx, chatID, "unknown_command", cmd)
 	}
 }
 

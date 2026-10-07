@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -143,26 +142,22 @@ func (a *App) cardView(t store.Task, now time.Time) taskView {
 	return taskView{Title: t.Title, When: a.when(t.Remind, now), Checkin: checkin}
 }
 
-func taskData(kind string, id int64, action string) string {
-	return fmt.Sprintf("%s:%d:%s", kind, id, action)
-}
-
 func (a *App) cardKeyboard(id int64) [][]tg.Button {
 	return [][]tg.Button{{
-		{Text: a.label("btn_ok", nil), Data: taskData("card", id, "ok")},
-		{Text: a.label("btn_time", nil), Data: taskData("card", id, "time")},
-		{Text: a.label("btn_cancel", nil), Data: taskData("card", id, "cancel")},
+		{Text: a.label("btn_ok", nil), Data: buttonData("card", id, "ok")},
+		{Text: a.label("btn_time", nil), Data: buttonData("card", id, "time")},
+		{Text: a.label("btn_cancel", nil), Data: buttonData("card", id, "cancel")},
 	}}
 }
 
 func (a *App) timeKeyboard(id int64) [][]tg.Button {
 	at := func(anchor string) tg.Button {
-		return tg.Button{Text: a.label("btn_"+anchor, nil), Data: taskData("card", id, "at-"+anchor)}
+		return tg.Button{Text: a.label("btn_"+anchor, nil), Data: buttonData("card", id, "at-"+anchor)}
 	}
 	return [][]tg.Button{
 		{at("morning"), at("afternoon")},
 		{at("evening"), at("eod")},
-		{{Text: a.label("btn_tomorrow", nil), Data: taskData("card", id, "tomorrow")}},
+		{{Text: a.label("btn_tomorrow", nil), Data: buttonData("card", id, "tomorrow")}},
 	}
 }
 
@@ -191,14 +186,14 @@ func (a *App) taskReminders(ctx context.Context, now time.Time) {
 
 // reminderKeyboard offers "at the end of the day" only while that time is still ahead.
 func (a *App) reminderKeyboard(id int64, now time.Time) [][]tg.Button {
-	later := tg.Button{Text: a.label("btn_tomorrow", nil), Data: taskData("rem", id, "tomorrow")}
+	later := tg.Button{Text: a.label("btn_tomorrow", nil), Data: buttonData("rem", id, "tomorrow")}
 	eod := atClock(midnight(now.In(a.Loc())), a.cfg.Anchors["eod"])
 	if eod.After(now) {
-		later = tg.Button{Text: a.label("btn_at", eod), Data: taskData("rem", id, "eod")}
+		later = tg.Button{Text: a.label("btn_at", eod), Data: buttonData("rem", id, "eod")}
 	}
 	return [][]tg.Button{{
-		{Text: a.label("btn_done", nil), Data: taskData("rem", id, "done")},
-		{Text: a.label("btn_hour", nil), Data: taskData("rem", id, "hour")},
+		{Text: a.label("btn_done", nil), Data: buttonData("rem", id, "done")},
+		{Text: a.label("btn_hour", nil), Data: buttonData("rem", id, "hour")},
 		later,
 	}}
 }

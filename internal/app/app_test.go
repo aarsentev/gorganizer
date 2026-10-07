@@ -170,9 +170,12 @@ func TestHandleText(t *testing.T) {
 	now := time.Date(2026, 9, 29, 7, 5, 0, 0, time.UTC) // 09:05 in Warsaw
 
 	a.HandleText(ctx, now, 1, "hello")
+	a.HandleText(ctx, now, 1, "   ")
 	a.HandleText(ctx, now, 1, "/tz")
+	a.HandleText(ctx, now, 1, "/start")
 
-	want := []string{"hello", "Europe/Warsaw, сейчас 09:05"}
+	// Plain text is a note, blank text is nothing, an unknown command is not a note.
+	want := []string{"📥 Записал", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}

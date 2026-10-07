@@ -60,6 +60,16 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 
 {{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
 
+{{define "note_saved"}}📥 Saved{{end}}
+{{define "unknown_command"}}Unknown command {{.}}{{end}}
+{{define "inbox_empty"}}📥 Inbox is empty{{end}}
+
+{{define "inbox"}}
+📥 Inbox: {{.Open}}{{if gt .Pages 1}} · page {{.Page}}/{{.Pages}}{{end}}
+{{range .Notes}}{{.N}}. {{if .Done}}☑{{else}}☐{{end}} {{.Text}}
+{{end}}
+{{end}}
+
 {{define "btn_ok"}}✓ OK{{end}}
 {{define "btn_time"}}✎ Time{{end}}
 {{define "btn_cancel"}}✕ Cancel{{end}}
@@ -75,3 +85,8 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_chk_tomorrow"}}{{.}} → tomorrow{{end}}
 {{define "btn_chk_delete"}}{{.}} ✕{{end}}
 {{define "btn_chk_state"}}{{.N}} {{template "checkin_mark" .}}{{end}}
+{{define "btn_note"}}{{.N}} {{if .Done}}☑{{else}}✓{{end}}{{end}}
+{{define "btn_first"}}«{{end}}
+{{define "btn_prev"}}‹{{end}}
+{{define "btn_next"}}›{{end}}
+{{define "btn_last"}}»{{end}}

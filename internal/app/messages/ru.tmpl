@@ -60,6 +60,16 @@
 
 {{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
 
+{{define "note_saved"}}📥 Записал{{end}}
+{{define "unknown_command"}}Не знаю команду {{.}}{{end}}
+{{define "inbox_empty"}}📥 Ящик пуст{{end}}
+
+{{define "inbox"}}
+📥 Ящик: {{.Open}}{{if gt .Pages 1}} · стр. {{.Page}}/{{.Pages}}{{end}}
+{{range .Notes}}{{.N}}. {{if .Done}}☑{{else}}☐{{end}} {{.Text}}
+{{end}}
+{{end}}
+
 {{define "btn_ok"}}✓ Ок{{end}}
 {{define "btn_time"}}✎ Время{{end}}
 {{define "btn_cancel"}}✕ Отмена{{end}}
@@ -75,3 +85,8 @@
 {{define "btn_chk_tomorrow"}}{{.}} → завтра{{end}}
 {{define "btn_chk_delete"}}{{.}} ✕{{end}}
 {{define "btn_chk_state"}}{{.N}} {{template "checkin_mark" .}}{{end}}
+{{define "btn_note"}}{{.N}} {{if .Done}}☑{{else}}✓{{end}}{{end}}
+{{define "btn_first"}}«{{end}}
+{{define "btn_prev"}}‹{{end}}
+{{define "btn_next"}}›{{end}}
+{{define "btn_last"}}»{{end}}

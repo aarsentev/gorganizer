@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -12,41 +13,65 @@ import (
 )
 
 // HandleCallback is called by tg for every button press in the allowed chat.
-// Data is "<kind>:<task id>:<action>", kind tells which message the button is under.
+// Data is "<kind>:<id>:<action>": kind tells which message the button is under,
+// id is the task or the note the button refers to.
 func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback) {
-	parts := strings.SplitN(cb.Data, ":", 3)
-	if len(parts) != 3 {
+	kind, id, action, ok := parseData(cb.Data)
+	if !ok {
 		a.log.Warn("unknown callback", "data", cb.Data)
 		return
 	}
-	id, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		a.log.Warn("unknown callback", "data", cb.Data)
-		return
-	}
-	t, err := a.store.Task(ctx, id)
-	if errors.Is(err, store.ErrNotFound) {
-		a.log.Warn("callback for a missing task", "task_id", id)
-		return
-	}
-	if err != nil {
-		a.log.Error("callback", "err", err)
-		return
-	}
-
-	switch kind, action := parts[0], parts[2]; kind {
-	case "card":
-		err = a.onCard(ctx, now, cb, t, action)
-	case "rem":
-		err = a.onReminder(ctx, now, cb, t, action)
-	case "chk":
-		err = a.onCheckin(ctx, now, cb, t, action)
+	var err error
+	switch kind {
+	case "card", "rem", "chk":
+		err = a.onTask(ctx, now, cb, kind, id, action)
+	case "inb":
+		err = a.onInbox(ctx, cb, id, action)
 	default:
 		a.log.Warn("unknown callback", "data", cb.Data)
+		return
 	}
 	if err != nil {
 		a.log.Error("callback", "data", cb.Data, "err", err)
 	}
+}
+
+// onTask loads the task a button refers to and passes it to the handler of that message.
+func (a *App) onTask(ctx context.Context, now time.Time, cb tg.Callback, kind string, id int64, action string) error {
+	t, err := a.store.Task(ctx, id)
+	if errors.Is(err, store.ErrNotFound) {
+		a.log.Warn("callback for a missing task", "task_id", id)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	switch kind {
+	case "card":
+		return a.onCard(ctx, now, cb, t, action)
+	case "rem":
+		return a.onReminder(ctx, now, cb, t, action)
+	}
+	return a.onCheckin(ctx, now, cb, t, action)
+}
+
+// buttonData builds "<kind>:<id>:<action>": Telegram cuts button data at 64 bytes,
+// so a button carries only a reference, never the content.
+func buttonData(kind string, id int64, action string) string {
+	return fmt.Sprintf("%s:%d:%s", kind, id, action)
+}
+
+// parseData splits data built by buttonData.
+func parseData(data string) (kind string, id int64, action string, ok bool) {
+	parts := strings.SplitN(data, ":", 3)
+	if len(parts) != 3 {
+		return "", 0, "", false
+	}
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return "", 0, "", false
+	}
+	return parts[0], id, parts[2], true
 }
 
 // onCard handles the confirmation card under "/task".
