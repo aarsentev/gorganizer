@@ -61,6 +61,9 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
 
 {{define "note_saved"}}📥 Saved to the inbox{{end}}
+{{define "note_usage"}}Example: /note tire size 205/55 R16{{end}}
+{{define "ask_kind"}}Task or note?{{end}}
+{{define "ask_lost"}}Can't see the original message, send the text again{{end}}
 {{define "unknown_command"}}Unknown command {{.}}{{end}}
 {{define "inbox_empty"}}📥 Inbox is empty{{end}}
 
@@ -90,3 +93,5 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_prev"}}‹{{end}}
 {{define "btn_next"}}›{{end}}
 {{define "btn_last"}}»{{end}}
+{{define "btn_as_task"}}☐ Task{{end}}
+{{define "btn_as_note"}}📥 Note{{end}}

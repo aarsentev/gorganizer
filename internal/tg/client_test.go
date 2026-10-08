@@ -22,7 +22,7 @@ func TestWhitelist(t *testing.T) {
 	}
 
 	updates := []*models.Update{
-		{Message: &models.Message{Chat: models.Chat{ID: 42}, Text: "hi"}},
+		{Message: &models.Message{ID: 5, Chat: models.Chat{ID: 42}, Text: "hi"}},
 		{Message: &models.Message{Chat: models.Chat{ID: 7}, Text: "intruder"}},
 		{Message: &models.Message{Chat: models.Chat{ID: 42}}}, // sticker, no text
 		{}, // not a message
@@ -31,7 +31,7 @@ func TestWhitelist(t *testing.T) {
 		c.onUpdate(context.Background(), nil, u)
 	}
 
-	if len(got) != 1 || got[0].Text != "hi" {
+	if len(got) != 1 || got[0] != (Message{ChatID: 42, ID: 5, Text: "hi"}) {
 		t.Fatalf("handled %+v, want only the allowed text message", got)
 	}
 }
@@ -135,6 +135,23 @@ func TestSendButtonsAndEdit(t *testing.T) {
 	if _, ok := bodies[1]["reply_markup"]; ok {
 		t.Fatalf("edit without keyboard sent reply_markup %v", bodies[1]["reply_markup"])
 	}
+	if _, ok := bodies[0]["reply_parameters"]; ok {
+		t.Fatalf("plain send is a reply: %v", bodies[0]["reply_parameters"])
+	}
+}
+
+func TestReply(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+
+	keyboard := [][]Button{{{Text: "Task", Data: "ask:10:task"}}}
+	if _, err := c.Reply(context.Background(), 42, 10, "Task or note?", keyboard); err != nil {
+		t.Fatal(err)
+	}
+	if calls[0] != "sendMessage" || bodies[0]["reply_parameters"] != `{"message_id":10}` {
+		t.Fatalf("call = %s %v, want a reply to message 10", calls[0], bodies[0])
+	}
 }
 
 func TestCallback(t *testing.T) {
@@ -150,8 +167,9 @@ func TestCallback(t *testing.T) {
 			From: models.User{ID: userID},
 			Data: "task:17:done",
 			Message: models.MaybeInaccessibleMessage{Message: &models.Message{
-				ID:   777,
-				Chat: models.Chat{ID: 42},
+				ID:             777,
+				Chat:           models.Chat{ID: 42},
+				ReplyToMessage: &models.Message{ID: 10, Text: "Buy beer"},
 				ReplyMarkup: &models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{
 					{{Text: "Done", CallbackData: "task:17:done"}},
 				}},
@@ -169,7 +187,7 @@ func TestCallback(t *testing.T) {
 		t.Fatalf("callbacks = %v", got)
 	}
 	cb := got[0]
-	if cb.ChatID != 42 || cb.MessageID != 777 || cb.Data != "task:17:done" ||
+	if cb.ChatID != 42 || cb.MessageID != 777 || cb.Data != "task:17:done" || cb.ReplyText != "Buy beer" ||
 		len(cb.Keyboard) != 1 || cb.Keyboard[0][0] != (Button{Text: "Done", Data: "task:17:done"}) {
 		t.Fatalf("callback = %+v", cb)
 	}

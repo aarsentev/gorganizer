@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"go-organizer/internal/tg"
 )
 
 func TestInboxScenario(t *testing.T) {
@@ -16,14 +18,14 @@ func TestInboxScenario(t *testing.T) {
 		"buy a bulb", "call about the meter", "idea: CSV export", "return the book",
 		"book the dentist", "renew the passport", "fix the bike",
 	} {
-		a.HandleText(ctx, now, 42, text)
+		a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/note " + text})
 	}
 	if len(send.sent) != 7 || send.sent[6] != "📥 Записал в ящик" {
 		t.Fatalf("sent %q, want a confirmation for every note", send.sent)
 	}
 
 	// Page 1 of 2: five notes, a button for each, arrows forward only.
-	a.HandleText(ctx, now, 42, "/inbox")
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/inbox"})
 	if send.sent[7] != "📥 Ящик: 7 · стр. 1/2\n1. ☐ buy a bulb\n2. ☐ call about the meter\n"+
 		"3. ☐ idea: CSV export\n4. ☐ return the book\n5. ☐ book the dentist" {
 		t.Fatalf("inbox = %q", send.sent[7])
@@ -70,9 +72,9 @@ func TestInboxUndoAndEmpty(t *testing.T) {
 	a, send, _ := newTestApp(t, nil, nil)
 	now := at(t, "2026-09-29 10:00")
 
-	a.HandleText(ctx, now, 42, "/inbox")
-	a.HandleText(ctx, now, 42, "buy a bulb")
-	a.HandleText(ctx, now, 42, "/inbox")
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/inbox"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/note buy a bulb"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/inbox"})
 	if send.sent[0] != "📥 Ящик пуст" || send.keyboards[0] != nil {
 		t.Fatalf("empty inbox = %q %v", send.sent[0], send.keyboards[0])
 	}

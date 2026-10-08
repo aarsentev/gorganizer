@@ -18,6 +18,7 @@ import (
 type fakeSender struct {
 	sent      []string
 	keyboards [][][]tg.Button // keyboard of each sent message, nil for plain ones
+	replyTo   []int64         // message each sent message replies to, 0 for none
 	edits     []edit
 	deleted   []int64
 	ops       []string // "send:<id>", "edit:<id>" and "delete:<id>"
@@ -34,13 +35,18 @@ func (f *fakeSender) Send(ctx context.Context, chatID int64, text string) (int64
 	return f.SendButtons(ctx, chatID, text, nil)
 }
 
-func (f *fakeSender) SendButtons(_ context.Context, _ int64, text string, keyboard [][]tg.Button) (int64, error) {
+func (f *fakeSender) SendButtons(ctx context.Context, chatID int64, text string, keyboard [][]tg.Button) (int64, error) {
+	return f.Reply(ctx, chatID, 0, text, keyboard)
+}
+
+func (f *fakeSender) Reply(_ context.Context, _, replyTo int64, text string, keyboard [][]tg.Button) (int64, error) {
 	if f.failSends > 0 {
 		f.failSends--
 		return 0, errors.New("telegram is down")
 	}
 	f.sent = append(f.sent, text)
 	f.keyboards = append(f.keyboards, keyboard)
+	f.replyTo = append(f.replyTo, replyTo)
 	id := int64(len(f.sent))
 	f.ops = append(f.ops, fmt.Sprintf("send:%d", id))
 	return id, nil
@@ -169,13 +175,13 @@ func TestHandleText(t *testing.T) {
 	}
 	now := time.Date(2026, 9, 29, 7, 5, 0, 0, time.UTC) // 09:05 in Warsaw
 
-	a.HandleText(ctx, now, 1, "hello")
-	a.HandleText(ctx, now, 1, "   ")
-	a.HandleText(ctx, now, 1, "/tz")
-	a.HandleText(ctx, now, 1, "/start")
+	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "hello"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "   "})
+	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/tz"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/start"})
 
-	// Plain text is a note, blank text is nothing, an unknown command is not a note.
-	want := []string{"📥 Записал в ящик", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
+	// Plain text gets the question, blank text gets nothing, an unknown command is not plain text.
+	want := []string{"Задача или заметка?", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}

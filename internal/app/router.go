@@ -4,26 +4,32 @@ import (
 	"context"
 	"strings"
 	"time"
+
+	"go-organizer/internal/tg"
 )
 
 // HandleText is called by tg for every message from the allowed chat.
-func (a *App) HandleText(ctx context.Context, now time.Time, chatID int64, text string) {
-	cmd, args := splitCommand(text)
+func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
+	cmd, args := splitCommand(m.Text)
 	switch cmd {
 	case "":
-		a.handleNote(ctx, now, chatID, args)
+		if args != "" {
+			a.askKind(ctx, m)
+		}
 	case "/task":
-		a.handleTask(ctx, now, chatID, args)
+		a.handleTask(ctx, now, m.ChatID, args)
+	case "/note":
+		a.handleNote(ctx, now, m.ChatID, args)
 	case "/inbox":
-		a.handleInbox(ctx, chatID)
+		a.handleInbox(ctx, m.ChatID)
 	case "/tz":
 		loc := a.Loc()
-		a.replyBlock(ctx, chatID, "tz", struct {
+		a.replyBlock(ctx, m.ChatID, "tz", struct {
 			Zone string
 			Now  time.Time
 		}{loc.String(), now.In(loc)})
 	default:
-		a.replyBlock(ctx, chatID, "unknown_command", cmd)
+		a.replyBlock(ctx, m.ChatID, "unknown_command", cmd)
 	}
 }
 

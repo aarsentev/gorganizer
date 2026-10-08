@@ -12,6 +12,7 @@ import (
 // Message is an incoming text message from the allowed chat.
 type Message struct {
 	ChatID int64
+	ID     int64 // Telegram id, to reply to this very message
 	Text   string
 }
 
@@ -29,6 +30,9 @@ type Callback struct {
 	MessageID int64
 	Data      string
 	Keyboard  [][]Button
+	// ReplyText is the text of the message this one replies to, "" if none or deleted.
+	// A question that replies to the user's message keeps its subject there, not in a database.
+	ReplyText string
 }
 
 type Handlers struct {
@@ -78,7 +82,15 @@ func (c *Client) Send(ctx context.Context, chatID int64, text string) (int64, er
 
 // SendButtons sends a message with inline buttons, one slice per row.
 func (c *Client) SendButtons(ctx context.Context, chatID int64, text string, keyboard [][]Button) (int64, error) {
+	return c.Reply(ctx, chatID, 0, text, keyboard)
+}
+
+// Reply sends a message with buttons as a reply to the message replyTo, 0 meaning no reply.
+func (c *Client) Reply(ctx context.Context, chatID, replyTo int64, text string, keyboard [][]Button) (int64, error) {
 	p := &bot.SendMessageParams{ChatID: chatID, Text: text}
+	if replyTo != 0 {
+		p.ReplyParameters = &models.ReplyParameters{MessageID: int(replyTo)}
+	}
 	if len(keyboard) > 0 {
 		p.ReplyMarkup = markup(keyboard)
 	}
@@ -131,7 +143,7 @@ func (c *Client) onMessage(ctx context.Context, m *models.Message) {
 	if m.Text == "" || c.handlers.Text == nil {
 		return
 	}
-	c.handlers.Text(ctx, Message{ChatID: m.Chat.ID, Text: m.Text})
+	c.handlers.Text(ctx, Message{ChatID: m.Chat.ID, ID: int64(m.ID), Text: m.Text})
 }
 
 func (c *Client) onCallback(ctx context.Context, q *models.CallbackQuery) {
@@ -151,6 +163,9 @@ func (c *Client) onCallback(ctx context.Context, q *models.CallbackQuery) {
 		return // the message was deleted or is no longer accessible to the bot
 	}
 	cb := Callback{ChatID: m.Chat.ID, MessageID: int64(m.ID), Data: q.Data}
+	if m.ReplyToMessage != nil {
+		cb.ReplyText = m.ReplyToMessage.Text
+	}
 	if m.ReplyMarkup != nil {
 		for _, row := range m.ReplyMarkup.InlineKeyboard {
 			var out []Button

@@ -27,6 +27,8 @@ func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback)
 		err = a.onTask(ctx, now, cb, kind, id, action)
 	case "inb":
 		err = a.onInbox(ctx, cb, id, action)
+	case "ask":
+		err = a.onAsk(ctx, now, cb, action)
 	default:
 		a.log.Warn("unknown callback", "data", cb.Data)
 		return

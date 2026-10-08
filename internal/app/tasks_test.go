@@ -107,7 +107,7 @@ func TestSparePartScenario(t *testing.T) {
 	tick := func(s string) { a.Tick(ctx, at(t, s)) }
 
 	// 10:00 — the task and its card.
-	a.HandleText(ctx, at(t, "2026-09-29 10:00"), 42, "/task забрать запчасть вечером")
+	a.HandleText(ctx, at(t, "2026-09-29 10:00"), tg.Message{ChatID: 42, Text: "/task забрать запчасть вечером"})
 	if send.sent[0] != "☐ Забрать запчасть\nНапомню сегодня в 18:00, итог дня в 21:00" {
 		t.Fatalf("card = %q", send.sent[0])
 	}
@@ -180,7 +180,7 @@ func TestCardTimeAndCancel(t *testing.T) {
 	a, send, st := newTestApp(t, nil, nil)
 	now := at(t, "2026-09-29 10:00")
 
-	a.HandleText(ctx, now, 42, "/task call the bank evening")
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/task call the bank evening"})
 	press(a, send, now, 1, "card:1:time")
 	if e := lastEdit(t, send); !sameRows(dataOf(e.keyboard), [][]string{
 		{"Утром=card:1:at-morning", "Днём=card:1:at-afternoon"},
@@ -227,7 +227,7 @@ func TestTaskUsageAndBadCallbacks(t *testing.T) {
 	ctx := context.Background()
 	a, send, _ := newTestApp(t, nil, nil)
 
-	a.HandleText(ctx, at(t, "2026-09-29 10:00"), 42, "/task@organizer_bot evening")
+	a.HandleText(ctx, at(t, "2026-09-29 10:00"), tg.Message{ChatID: 42, Text: "/task@organizer_bot evening"})
 	if len(send.sent) != 1 || send.sent[0][:len("Пример")] != "Пример" {
 		t.Fatalf("sent %q, want the usage hint", send.sent)
 	}
@@ -281,7 +281,7 @@ func TestTaskAtEodOnlyInReview(t *testing.T) {
 	a, send, st := newTestApp(t, nil, nil)
 	skipJobs(t, st, "2026-09-29", jobDigest, jobEvening)
 
-	a.HandleText(ctx, at(t, "2026-09-29 10:00"), 42, "/task call mom 21:00")
+	a.HandleText(ctx, at(t, "2026-09-29 10:00"), tg.Message{ChatID: 42, Text: "/task call mom 21:00"})
 	a.Tick(ctx, at(t, "2026-09-29 21:00"))
 	a.Tick(ctx, at(t, "2026-09-29 21:01"))
 

@@ -11,7 +11,8 @@ import (
 	"go-organizer/internal/tg"
 )
 
-// Notes are quick captures without a time: any plain text lands in the inbox,
+// Notes are things to remember, not actions: an idea, a fact, a link. /note or the
+// "note" answer to the question about plain text puts them in the inbox,
 // /inbox shows it page by page and each note can be marked as handled.
 
 const (
@@ -34,6 +35,7 @@ type inboxView struct {
 
 func (a *App) handleNote(ctx context.Context, now time.Time, chatID int64, text string) {
 	if text == "" {
+		a.replyBlock(ctx, chatID, "note_usage", nil)
 		return
 	}
 	if _, err := a.store.CreateNote(ctx, text, now); err != nil {

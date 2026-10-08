@@ -77,7 +77,7 @@ func run() error {
 	g.Go(func() error {
 		return tgClient.Run(ctx, tg.Handlers{
 			Text: func(ctx context.Context, m tg.Message) {
-				a.HandleText(ctx, time.Now(), m.ChatID, m.Text)
+				a.HandleText(ctx, time.Now(), m)
 			},
 			Callback: func(ctx context.Context, cb tg.Callback) {
 				a.HandleCallback(ctx, time.Now(), cb)

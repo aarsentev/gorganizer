@@ -94,29 +94,37 @@ func capitalize(s string) string {
 }
 
 func (a *App) handleTask(ctx context.Context, now time.Time, chatID int64, args string) {
-	title, remind, err := a.parseTask(args, now)
-	if err != nil {
+	text, keyboard, err := a.createTask(ctx, now, args)
+	if errors.Is(err, errNoTitle) {
 		a.replyBlock(ctx, chatID, "task_usage", nil)
 		return
 	}
-	id, err := a.store.CreateTask(ctx, title, remind, now)
 	if err != nil {
 		a.log.Error("create task", "err", err)
 		return
+	}
+	if _, err := a.send.SendButtons(ctx, chatID, text, keyboard); err != nil {
+		a.log.Error("send task card", "err", err)
+	}
+}
+
+// createTask stores the task described by args and returns its card.
+// errNoTitle means there was only a time: the caller shows the usage.
+func (a *App) createTask(ctx context.Context, now time.Time, args string) (string, [][]tg.Button, error) {
+	title, remind, err := a.parseTask(args, now)
+	if err != nil {
+		return "", nil, err
+	}
+	id, err := a.store.CreateTask(ctx, title, remind, now)
+	if err != nil {
+		return "", nil, err
 	}
 	t, err := a.store.Task(ctx, id)
 	if err != nil {
-		a.log.Error("create task", "err", err)
-		return
+		return "", nil, err
 	}
 	text, err := a.render("task_card", a.cardView(t, now))
-	if err != nil {
-		a.log.Error("render", "err", err)
-		return
-	}
-	if _, err := a.send.SendButtons(ctx, chatID, text, a.cardKeyboard(id)); err != nil {
-		a.log.Error("send task card", "err", err)
-	}
+	return text, a.cardKeyboard(id), err
 }
 
 // whenView lets templates say "today at 18:00" / "tomorrow at 18:00" / "Tue, Sep 29 at 18:00".

@@ -61,6 +61,9 @@
 {{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
 
 {{define "note_saved"}}📥 Записал в ящик{{end}}
+{{define "note_usage"}}Пример: /note размер шин 205/55 R16{{end}}
+{{define "ask_kind"}}Задача или заметка?{{end}}
+{{define "ask_lost"}}Не вижу исходного сообщения — отправь текст ещё раз{{end}}
 {{define "unknown_command"}}Не знаю команду {{.}}{{end}}
 {{define "inbox_empty"}}📥 Ящик пуст{{end}}
 
@@ -90,3 +93,5 @@
 {{define "btn_prev"}}‹{{end}}
 {{define "btn_next"}}›{{end}}
 {{define "btn_last"}}»{{end}}
+{{define "btn_as_task"}}☐ Задача{{end}}
+{{define "btn_as_note"}}📥 Заметка{{end}}
