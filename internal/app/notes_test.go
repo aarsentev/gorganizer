@@ -18,7 +18,7 @@ func TestInboxScenario(t *testing.T) {
 	} {
 		a.HandleText(ctx, now, 42, text)
 	}
-	if len(send.sent) != 7 || send.sent[6] != "📥 Записал" {
+	if len(send.sent) != 7 || send.sent[6] != "📥 Записал в ящик" {
 		t.Fatalf("sent %q, want a confirmation for every note", send.sent)
 	}
 

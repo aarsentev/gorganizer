@@ -175,7 +175,7 @@ func TestHandleText(t *testing.T) {
 	a.HandleText(ctx, now, 1, "/start")
 
 	// Plain text is a note, blank text is nothing, an unknown command is not a note.
-	want := []string{"📥 Записал", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
+	want := []string{"📥 Записал в ящик", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}

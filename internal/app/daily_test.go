@@ -1,7 +1,10 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,7 +62,7 @@ func TestEveningMessageIsReplacedByMorningDigest(t *testing.T) {
 
 func TestEveningWithNothingTomorrow(t *testing.T) {
 	a, send, _ := newTestApp(t, nil, nil)
-	if err := a.evening(context.Background(), at(t, "2026-09-29 20:00")); err != nil {
+	if _, err := a.evening(context.Background(), at(t, "2026-09-29 20:00")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -103,6 +106,29 @@ func TestWithoutCalendarOnlyTasks(t *testing.T) {
 	}
 }
 
+// The log tells what every daily job did, also when it had nothing to send.
+func TestDailyJobsAreLogged(t *testing.T) {
+	ctx := context.Background()
+	var out bytes.Buffer
+	a, err := New(ctx, openStore(t), &fakeSender{}, withCalendar(), testConfig(), slog.New(slog.NewTextHandler(&out, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a.Tick(ctx, at(t, "2026-09-29 07:30"))
+	a.Tick(ctx, at(t, "2026-09-29 21:00"))
+
+	for _, want := range []string{
+		`msg="daily job" job=digest day=2026-09-29 events=0 tasks=0`,
+		`msg="daily job" job=evening day=2026-09-29 events=0`,
+		`msg="daily job" job=checkin day=2026-09-29 tasks=0`,
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("log has no %s\n%s", want, out.String())
+		}
+	}
+}
+
 func TestDailyJobSurvivesRestart(t *testing.T) {
 	ctx := context.Background()
 	a, send, st := newTestApp(t, nil, nil)
@@ -137,11 +163,11 @@ func TestFailedDigestIsRetried(t *testing.T) {
 func TestStaleEveningMessageIsDeletedByTheNextEvening(t *testing.T) {
 	ctx := context.Background()
 	a, send, st := newTestApp(t, nil, nil)
-	if err := a.evening(ctx, at(t, "2026-09-29 20:00")); err != nil {
+	if _, err := a.evening(ctx, at(t, "2026-09-29 20:00")); err != nil {
 		t.Fatal(err)
 	}
 	// No morning digest (downtime), next evening comes.
-	if err := a.evening(ctx, at(t, "2026-09-30 20:00")); err != nil {
+	if _, err := a.evening(ctx, at(t, "2026-09-30 20:00")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +188,7 @@ func TestCleanupDeletesYesterdaysReminders(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := a.digest(ctx, at(t, "2026-09-29 07:30")); err != nil {
+		if _, err := a.digest(ctx, at(t, "2026-09-29 07:30")); err != nil {
 			t.Fatal(err)
 		}
 

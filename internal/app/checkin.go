@@ -21,10 +21,14 @@ type checkinLine struct {
 
 // checkin is a daily job at anchors.eod. Tasks whose time is still ahead remind on their own;
 // tasks due right now are in the review instead, so their reminder is disarmed.
-func (a *App) checkin(ctx context.Context, local time.Time) error {
+func (a *App) checkin(ctx context.Context, local time.Time) ([]any, error) {
 	tasks, err := a.store.OpenTasksDue(ctx, local)
-	if err != nil || len(tasks) == 0 {
-		return err
+	if err != nil {
+		return nil, err
+	}
+	details := []any{"tasks", len(tasks)}
+	if len(tasks) == 0 {
+		return details, nil
 	}
 	ids := make([]int64, len(tasks))
 	for i, t := range tasks {
@@ -32,17 +36,17 @@ func (a *App) checkin(ctx context.Context, local time.Time) error {
 	}
 	text, keyboard, err := a.renderCheckin(ctx, ids, local)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := a.send.SendButtons(ctx, a.cfg.ChatID, text, keyboard); err != nil {
-		return err
+		return nil, err
 	}
 	for _, t := range tasks {
 		if err := a.store.MarkTaskReminded(ctx, t.ID, t.Remind); err != nil {
 			a.log.Error("checkin", "task_id", t.ID, "err", err)
 		}
 	}
-	return nil
+	return details, nil
 }
 
 // onCheckin applies the action and redraws the whole review. The task ids come

@@ -34,7 +34,10 @@ func (a *App) dailyJobs(ctx context.Context, now time.Time) {
 	}
 }
 
-func (a *App) fire(ctx context.Context, job string, local, now time.Time, run func(context.Context, time.Time) error) {
+// dailyJob does the job for the local day and returns what it did as log key-value pairs.
+type dailyJob func(ctx context.Context, local time.Time) (details []any, err error)
+
+func (a *App) fire(ctx context.Context, job string, local, now time.Time, run dailyJob) {
 	day := local.Format(time.DateOnly)
 	ok, err := a.store.TryFire(ctx, job, day, now)
 	if err != nil {
@@ -44,21 +47,26 @@ func (a *App) fire(ctx context.Context, job string, local, now time.Time, run fu
 	if !ok {
 		return
 	}
-	if err := run(ctx, local); err != nil {
+	details, err := run(ctx, local)
+	if err != nil {
 		a.log.Error("daily job", "job", job, "err", err)
 		// Let the next tick try again instead of losing the job for today.
 		if err := a.store.Unfire(ctx, job, day); err != nil {
 			a.log.Error("daily job", "job", job, "err", err)
 		}
+		return
 	}
+	// One line per job and day, also when there was nothing to send:
+	// a silent day review shows up in the log as tasks=0, not as nothing.
+	a.log.Info("daily job", append([]any{"job", job, "day", day}, details...)...)
 }
 
 // evening sends tomorrow's events. Its id is kept so the morning digest can delete it.
-func (a *App) evening(ctx context.Context, local time.Time) error {
+func (a *App) evening(ctx context.Context, local time.Time) ([]any, error) {
 	tomorrow := midnight(local).AddDate(0, 0, 1)
 	events, err := a.dayEvents(ctx, tomorrow)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	block := "evening"
 	if len(events) == 0 {
@@ -69,32 +77,32 @@ func (a *App) evening(ctx context.Context, local time.Time) error {
 		Events []eventView
 	}{tomorrow, events})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	id, err := a.send.Send(ctx, a.cfg.ChatID, text)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// The morning never ran (downtime), so yesterday's evening message is still there.
 	a.deleteEvening(ctx)
-	return a.store.SetEveningMessageID(ctx, id)
+	return []any{"events", len(events)}, a.store.SetEveningMessageID(ctx, id)
 }
 
 // digest sends today's events and open tasks, then removes the evening message
 // it replaces. Send first: if sending fails, last evening's message stays.
-func (a *App) digest(ctx context.Context, local time.Time) error {
+func (a *App) digest(ctx context.Context, local time.Time) ([]any, error) {
 	today := midnight(local)
 	// Without a calendar the events are unknown, not absent: the digest shows tasks only.
 	var events []eventView
 	if a.cal != nil {
 		var err error
 		if events, err = a.dayEvents(ctx, today); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	tasks, err := a.store.OpenTasksBefore(ctx, today.AddDate(0, 0, 1))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	text, err := a.render("digest", struct {
 		Day        time.Time
@@ -103,16 +111,16 @@ func (a *App) digest(ctx context.Context, local time.Time) error {
 		NoCalendar bool
 	}{today, events, tasks, a.cal == nil})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := a.send.Send(ctx, a.cfg.ChatID, text); err != nil {
-		return err
+		return nil, err
 	}
 	a.deleteEvening(ctx)
 	if a.cfg.Reminders.Cleanup {
 		a.cleanupReminders(ctx, today)
 	}
-	return nil
+	return []any{"events", len(events), "tasks", len(tasks)}, nil
 }
 
 // dayEvents lists all-day events first, then timed ones by start, for a local day.

@@ -60,7 +60,7 @@
 
 {{define "checkin_mark"}}{{if eq .State "done"}}☑{{else if eq .State "cancelled"}}✕{{else if eq .State "moved"}}→{{else}}☐{{end}}{{end}}
 
-{{define "note_saved"}}📥 Записал{{end}}
+{{define "note_saved"}}📥 Записал в ящик{{end}}
 {{define "unknown_command"}}Не знаю команду {{.}}{{end}}
 {{define "inbox_empty"}}📥 Ящик пуст{{end}}
 
