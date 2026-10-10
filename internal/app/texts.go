@@ -70,6 +70,21 @@ func btoi(b bool) int {
 	return 0
 }
 
+// gmt is the offset of t's zone at that moment: GMT+2, GMT-4, GMT+5:30.
+// Like clock, it is the same in every language.
+func gmt(t time.Time) string {
+	_, offset := t.Zone()
+	sign := "+"
+	if offset < 0 {
+		sign, offset = "-", -offset
+	}
+	hours, minutes := offset/3600, offset%3600/60
+	if minutes == 0 {
+		return fmt.Sprintf("GMT%s%d", sign, hours)
+	}
+	return fmt.Sprintf("GMT%s%d:%02d", sign, hours, minutes)
+}
+
 func funcs(lang string) template.FuncMap {
 	loc, ok := locales[lang]
 	if !ok {
@@ -79,6 +94,7 @@ func funcs(lang string) template.FuncMap {
 	return template.FuncMap{
 		"date":  loc.date,
 		"clock": func(t time.Time) string { return t.Format("15:04") },
+		"gmt":   gmt,
 		"plural": func(n int, forms ...string) string {
 			i := rule(n)
 			if i >= len(forms) {

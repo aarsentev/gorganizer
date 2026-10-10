@@ -23,11 +23,7 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 	case "/inbox":
 		a.handleInbox(ctx, m.ChatID)
 	case "/tz":
-		loc := a.Loc()
-		a.replyBlock(ctx, m.ChatID, "tz", struct {
-			Zone string
-			Now  time.Time
-		}{loc.String(), now.In(loc)})
+		a.handleTZ(ctx, now, m.ChatID, args)
 	default:
 		a.replyBlock(ctx, m.ChatID, "unknown_command", cmd)
 	}

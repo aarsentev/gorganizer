@@ -181,7 +181,11 @@ func TestHandleText(t *testing.T) {
 	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/start"})
 
 	// Plain text gets the question, blank text gets nothing, an unknown command is not plain text.
-	want := []string{"Задача или заметка?", "Europe/Warsaw, сейчас 09:05", "Не знаю команду /start"}
+	want := []string{
+		"Задача или заметка?",
+		"Europe/Warsaw (GMT+2), сейчас 09:05\nСменить: /tz toronto или /tz America/Toronto",
+		"Не знаю команду /start",
+	}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)
 	}

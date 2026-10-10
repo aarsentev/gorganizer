@@ -1,6 +1,9 @@
 {{/* Every block is rendered by name from Go code. Other languages copy these names. */}}
 
-{{define "tz"}}{{.Zone}}, сейчас {{clock .Now}}{{end}}
+{{define "tz"}}{{.Zone}} ({{gmt .Now}}), сейчас {{clock .Now}}{{end}}
+{{define "tz_current"}}{{template "tz" .}}
+Сменить: /tz toronto или /tz America/Toronto{{end}}
+{{define "tz_unknown"}}Не нашёл зону «{{.}}». Пример: /tz toronto или /tz America/Toronto{{end}}
 
 {{define "title"}}{{or . "(без названия)"}}{{end}}
 

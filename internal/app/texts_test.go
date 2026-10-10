@@ -34,6 +34,32 @@ func TestPluralRules(t *testing.T) {
 	}
 }
 
+func TestGMT(t *testing.T) {
+	zone := func(name string) *time.Location {
+		loc, err := time.LoadLocation(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return loc
+	}
+	summer := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+	cases := map[string]string{
+		"Europe/Warsaw":   "GMT+2",
+		"America/Toronto": "GMT-4",
+		"Asia/Kolkata":    "GMT+5:30",
+		"UTC":             "GMT+0",
+	}
+	for name, want := range cases {
+		if got := gmt(summer.In(zone(name))); got != want {
+			t.Errorf("%s: %s, want %s", name, got, want)
+		}
+	}
+	// Winter time: the offset belongs to the moment, not to the zone.
+	if got := gmt(time.Date(2026, 1, 1, 12, 0, 0, 0, zone("America/Toronto"))); got != "GMT-5" {
+		t.Errorf("Toronto in winter: %s, want GMT-5", got)
+	}
+}
+
 type dayEvents struct {
 	Day        time.Time
 	Events     []eventView
@@ -81,10 +107,9 @@ func renderSamples() map[string]struct {
 		data  any
 	}
 	return map[string]sample{
-		"tz": {"tz", struct {
-			Zone string
-			Now  time.Time
-		}{"Europe/Warsaw", at(9, 5)}},
+		"tz":                        {"tz", tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}},
+		"tz current":                {"tz_current", tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}},
+		"unknown zone":              {"tz_unknown", "Atlantis"},
 		"reminder with location":    {"reminder", reminder{seminar, 60}},
 		"reminder without location": {"reminder", reminder{doctor, 60}},
 		"untitled reminder":         {"reminder", reminder{untitled, 15}},
@@ -137,7 +162,9 @@ const fiveDoctors = "\n• 18:00 Doctor\n• 18:00 Doctor\n• 18:00 Doctor\n•
 
 func TestRenderRu(t *testing.T) {
 	checkRender(t, "ru", map[string]string{
-		"tz":                        "Europe/Warsaw, сейчас 09:05",
+		"tz":                        "Europe/Warsaw (GMT+2), сейчас 09:05",
+		"tz current":                "Europe/Warsaw (GMT+2), сейчас 09:05\nСменить: /tz toronto или /tz America/Toronto",
+		"unknown zone":              "Не нашёл зону «Atlantis». Пример: /tz toronto или /tz America/Toronto",
 		"reminder with location":    "⏰ Seminar через 60 мин — 10:00, Room 5",
 		"reminder without location": "⏰ Doctor через 60 мин — 18:00",
 		"untitled reminder":         "⏰ (без названия) через 15 мин — 10:00",
@@ -165,7 +192,9 @@ func TestRenderRu(t *testing.T) {
 
 func TestRenderEn(t *testing.T) {
 	checkRender(t, "en", map[string]string{
-		"tz":                        "Europe/Warsaw, now 09:05",
+		"tz":                        "Europe/Warsaw (GMT+2), now 09:05",
+		"tz current":                "Europe/Warsaw (GMT+2), now 09:05\nChange it: /tz toronto or /tz America/Toronto",
+		"unknown zone":              "No zone \"Atlantis\". Example: /tz toronto or /tz America/Toronto",
 		"reminder with location":    "⏰ Seminar in 60 min — 10:00, Room 5",
 		"reminder without location": "⏰ Doctor in 60 min — 18:00",
 		"untitled reminder":         "⏰ (untitled) in 15 min — 10:00",

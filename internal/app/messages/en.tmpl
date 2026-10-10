@@ -1,6 +1,9 @@
 {{/* Same block names as ru.tmpl. A block missing here falls back to Russian. */}}
 
-{{define "tz"}}{{.Zone}}, now {{clock .Now}}{{end}}
+{{define "tz"}}{{.Zone}} ({{gmt .Now}}), now {{clock .Now}}{{end}}
+{{define "tz_current"}}{{template "tz" .}}
+Change it: /tz toronto or /tz America/Toronto{{end}}
+{{define "tz_unknown"}}No zone "{{.}}". Example: /tz toronto or /tz America/Toronto{{end}}
 
 {{define "title"}}{{or . "(untitled)"}}{{end}}
 
