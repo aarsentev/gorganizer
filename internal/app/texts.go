@@ -4,6 +4,8 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"maps"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -137,6 +139,12 @@ func loadTexts() (*texts, error) {
 		t.sets[lang] = set
 	}
 	return t, nil
+}
+
+// languages are those with a messages file, sorted. A language without one would
+// fall back to the base language entirely, so it is not offered.
+func (t *texts) languages() []string {
+	return slices.Sorted(maps.Keys(t.sets))
 }
 
 func (t *texts) render(lang, name string, data any) (string, error) {

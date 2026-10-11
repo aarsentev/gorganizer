@@ -23,6 +23,12 @@ type fakeSender struct {
 	deleted   []int64
 	ops       []string // "send:<id>", "edit:<id>" and "delete:<id>"
 	failSends int      // the next N sends fail, as if Telegram were down
+	menus     [][]tg.Command
+}
+
+func (f *fakeSender) SetCommands(_ context.Context, commands []tg.Command) error {
+	f.menus = append(f.menus, commands)
+	return nil
 }
 
 type edit struct {
@@ -178,13 +184,13 @@ func TestHandleText(t *testing.T) {
 	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "hello"})
 	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "   "})
 	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/tz"})
-	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/start"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 1, Text: "/foo"})
 
 	// Plain text gets the question, blank text gets nothing, an unknown command is not plain text.
 	want := []string{
 		"Задача или заметка?",
 		"Europe/Warsaw (GMT+2), сейчас 09:05\nСменить: /tz toronto или /tz America/Toronto",
-		"Не знаю команду /start",
+		"Не знаю команду /foo",
 	}
 	if len(send.sent) != len(want) {
 		t.Fatalf("sent %q, want %q", send.sent, want)

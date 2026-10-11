@@ -20,6 +20,7 @@ type Sender interface {
 	Reply(ctx context.Context, chatID, replyTo int64, text string, keyboard [][]tg.Button) (messageID int64, err error)
 	Edit(ctx context.Context, chatID, messageID int64, text string, keyboard [][]tg.Button) error
 	Delete(ctx context.Context, chatID, messageID int64) error
+	SetCommands(ctx context.Context, commands []tg.Command) error
 }
 
 type App struct {

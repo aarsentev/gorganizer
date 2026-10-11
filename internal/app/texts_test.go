@@ -10,6 +10,7 @@ import (
 
 	"go-organizer/internal/config"
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 func TestPluralRules(t *testing.T) {
@@ -132,6 +133,7 @@ func renderSamples() map[string]struct {
 		"inbox page":                {"inbox", inbox},
 		"inbox, one page":           {"inbox", inboxView{Open: 1, Page: 1, Pages: 1, Notes: inbox.Notes[:1]}},
 		"closed note button":        {"btn_note", inbox.Notes[1]},
+		"help":                      {"help", []tg.Command{{Name: "task", Description: "Task"}, {Name: "tz", Description: "Zone"}}},
 	}
 }
 
@@ -187,6 +189,7 @@ func TestRenderRu(t *testing.T) {
 		"inbox page":                "📥 Ящик: 6 · стр. 2/3\n1. ☐ Buy a bulb\n2. ☑ Call the bank",
 		"inbox, one page":           "📥 Ящик: 1\n1. ☐ Buy a bulb",
 		"closed note button":        "2 ☑",
+		"help":                      "/task — Task\n/tz — Zone\n\nПросто текст — спрошу, задача это или заметка.",
 	})
 }
 
@@ -217,6 +220,7 @@ func TestRenderEn(t *testing.T) {
 		"inbox page":                "📥 Inbox: 6 · page 2/3\n1. ☐ Buy a bulb\n2. ☑ Call the bank",
 		"inbox, one page":           "📥 Inbox: 1\n1. ☐ Buy a bulb",
 		"closed note button":        "2 ☑",
+		"help":                      "/task — Task\n/tz — Zone\n\nPlain text: I'll ask whether it's a task or a note.",
 	})
 }
 

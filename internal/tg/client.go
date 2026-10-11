@@ -35,6 +35,12 @@ type Callback struct {
 	ReplyText string
 }
 
+// Command is an entry of the menu Telegram shows next to the input field.
+type Command struct {
+	Name        string // without the slash: "task"
+	Description string
+}
+
 type Handlers struct {
 	Text     func(ctx context.Context, m Message)
 	Callback func(ctx context.Context, cb Callback)
@@ -118,6 +124,18 @@ func (c *Client) Delete(ctx context.Context, chatID, messageID int64) error {
 	_, err := c.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{ChatID: chatID, MessageID: int(messageID)})
 	if err != nil {
 		return fmt.Errorf("delete %d in %d: %w", messageID, chatID, err)
+	}
+	return nil
+}
+
+// SetCommands replaces the whole command menu.
+func (c *Client) SetCommands(ctx context.Context, commands []Command) error {
+	list := make([]models.BotCommand, len(commands))
+	for i, command := range commands {
+		list[i] = models.BotCommand{Command: command.Name, Description: command.Description}
+	}
+	if _, err := c.bot.SetMyCommands(ctx, &bot.SetMyCommandsParams{Commands: list}); err != nil {
+		return fmt.Errorf("set commands: %w", err)
 	}
 	return nil
 }

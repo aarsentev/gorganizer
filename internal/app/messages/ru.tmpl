@@ -5,6 +5,22 @@
 Сменить: /tz toronto или /tz America/Toronto{{end}}
 {{define "tz_unknown"}}Не нашёл зону «{{.}}». Пример: /tz toronto или /tz America/Toronto{{end}}
 
+{{define "lang"}}Язык: {{.Lang}}. Доступно: {{template "lang_list" .Available}}{{end}}
+{{define "lang_unknown"}}Нет языка «{{.Lang}}». Доступно: {{template "lang_list" .Available}}{{end}}
+{{define "lang_list"}}{{range $i, $lang := .}}{{if $i}}, {{end}}{{$lang}}{{end}}{{end}}
+
+{{define "help"}}
+{{range .}}/{{.Name}} — {{.Description}}
+{{end}}
+Просто текст — спрошу, задача это или заметка.
+{{end}}
+
+{{define "cmd_task"}}Задача: /task забрать запчасть вечером{{end}}
+{{define "cmd_note"}}Заметка: мысль, факт, ссылка{{end}}
+{{define "cmd_inbox"}}Ящик заметок{{end}}
+{{define "cmd_tz"}}Часовой пояс: /tz toronto{{end}}
+{{define "cmd_lang"}}Язык: /lang en{{end}}
+
 {{define "title"}}{{or . "(без названия)"}}{{end}}
 
 {{define "event_line"}}

@@ -24,6 +24,10 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 		a.handleInbox(ctx, m.ChatID)
 	case "/tz":
 		a.handleTZ(ctx, now, m.ChatID, args)
+	case "/lang":
+		a.handleLang(ctx, m.ChatID, args)
+	case "/start", "/help":
+		a.handleHelp(ctx, m.ChatID)
 	default:
 		a.replyBlock(ctx, m.ChatID, "unknown_command", cmd)
 	}

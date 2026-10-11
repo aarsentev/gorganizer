@@ -5,6 +5,22 @@
 Change it: /tz toronto or /tz America/Toronto{{end}}
 {{define "tz_unknown"}}No zone "{{.}}". Example: /tz toronto or /tz America/Toronto{{end}}
 
+{{define "lang"}}Language: {{.Lang}}. Available: {{template "lang_list" .Available}}{{end}}
+{{define "lang_unknown"}}No language "{{.Lang}}". Available: {{template "lang_list" .Available}}{{end}}
+{{define "lang_list"}}{{range $i, $lang := .}}{{if $i}}, {{end}}{{$lang}}{{end}}{{end}}
+
+{{define "help"}}
+{{range .}}/{{.Name}} — {{.Description}}
+{{end}}
+Plain text: I'll ask whether it's a task or a note.
+{{end}}
+
+{{define "cmd_task"}}Task: /task pick up the part evening{{end}}
+{{define "cmd_note"}}Note: a thought, a fact, a link{{end}}
+{{define "cmd_inbox"}}Notes inbox{{end}}
+{{define "cmd_tz"}}Time zone: /tz toronto{{end}}
+{{define "cmd_lang"}}Language: /lang ru{{end}}
+
 {{define "title"}}{{or . "(untitled)"}}{{end}}
 
 {{define "event_line"}}

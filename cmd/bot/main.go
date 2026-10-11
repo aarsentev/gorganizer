@@ -72,6 +72,8 @@ func run() error {
 	}
 
 	log.Info("Started", "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath, "calendar", cal != nil)
+	// Every start, so a menu changed in a new version reaches Telegram with the deploy.
+	a.PublishCommands(ctx)
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {

@@ -54,7 +54,7 @@ func fakeTelegram(t *testing.T, calls *[]string, bodies *[]map[string]any) *Clie
 		switch method {
 		case "sendMessage":
 			w.Write([]byte(`{"ok":true,"result":{"message_id":777,"date":0,"chat":{"id":42,"type":"private"}}}`))
-		case "answerCallbackQuery", "editMessageText":
+		case "answerCallbackQuery", "editMessageText", "setMyCommands":
 			w.Write([]byte(`{"ok":true,"result":true}`))
 		case "deleteMessage":
 			if body["message_id"] == "404" {
@@ -151,6 +151,21 @@ func TestReply(t *testing.T) {
 	}
 	if calls[0] != "sendMessage" || bodies[0]["reply_parameters"] != `{"message_id":10}` {
 		t.Fatalf("call = %s %v, want a reply to message 10", calls[0], bodies[0])
+	}
+}
+
+func TestSetCommands(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+
+	err := c.SetCommands(context.Background(), []Command{{Name: "task", Description: "Task"}, {Name: "tz", Description: "Time zone"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `[{"command":"task","description":"Task"},{"command":"tz","description":"Time zone"}]`
+	if calls[0] != "setMyCommands" || bodies[0]["commands"] != want {
+		t.Fatalf("call = %s %v\nwant commands %s", calls[0], bodies[0], want)
 	}
 }
 
