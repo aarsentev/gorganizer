@@ -66,7 +66,7 @@ Tasks:
 
 {{define "task_card"}}
 ☐ {{.Title}}
-Reminder {{template "when" .When}}, day review at {{clock .Checkin}}
+Reminder {{template "when" .When}}, day review {{template "when" .Checkin}}
 {{end}}
 
 {{define "task_usage"}}Example: /task pick up the part evening

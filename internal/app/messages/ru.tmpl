@@ -66,7 +66,7 @@
 
 {{define "task_card"}}
 ☐ {{.Title}}
-Напомню {{template "when" .When}}, итог дня в {{clock .Checkin}}
+Напомню {{template "when" .When}}, итог дня {{template "when" .Checkin}}
 {{end}}
 
 {{define "task_usage"}}Пример: /task забрать запчасть вечером

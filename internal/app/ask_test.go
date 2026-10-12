@@ -24,7 +24,7 @@ func TestPlainTextBecomesTask(t *testing.T) {
 	// The question turns into the task card; the tail of the text sets the time, as in /task.
 	a.HandleCallback(ctx, now, tg.Callback{ChatID: 42, MessageID: 1, Data: "ask:10:task", ReplyText: "Купить пива завтра 19:00"})
 	e := lastEdit(t, send)
-	if e.messageID != 1 || e.text != "☐ Купить пива\nНапомню завтра в 19:00, итог дня в 21:00" ||
+	if e.messageID != 1 || e.text != "☐ Купить пива\nНапомню завтра в 19:00, итог дня завтра в 21:00" ||
 		!sameRows(dataOf(e.keyboard), [][]string{{"✓ Ок=card:1:ok", "✎ Время=card:1:time", "✕ Отмена=card:1:cancel"}}) {
 		t.Fatalf("after 'task' = %d %q %v", e.messageID, e.text, dataOf(e.keyboard))
 	}

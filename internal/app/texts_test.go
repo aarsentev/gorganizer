@@ -90,7 +90,10 @@ func renderSamples() map[string]struct {
 	today := whenView{T: at(18, 0), Today: true}
 	tomorrow := whenView{T: at(18, 0).AddDate(0, 0, 1), Tomorrow: true}
 	later := whenView{T: at(9, 0).AddDate(0, 0, 3)}
-	card := func(w whenView) taskView { return taskView{Title: "Pick up the part", When: w, Checkin: at(21, 0)} }
+	card := func(w whenView) taskView {
+		review := whenView{T: time.Date(w.T.Year(), w.T.Month(), w.T.Day(), 21, 0, 0, 0, w.T.Location()), Today: w.Today, Tomorrow: w.Tomorrow}
+		return taskView{Title: "Pick up the part", When: w, Checkin: review}
+	}
 	checkin := struct{ Tasks []checkinLine }{[]checkinLine{
 		{N: 1, Title: "Pick up the part", State: "open"},
 		{N: 2, Title: "Call the bank", State: "done"},
@@ -180,8 +183,8 @@ func TestRenderRu(t *testing.T) {
 		"digest, only tasks":        "☀️ Сегодня, вт, 29 сен, событий нет\n\nЗадачи:\n☐ Pick up the part",
 		"digest, no calendar":       "☀️ Сегодня, вт, 29 сен, задач нет",
 		"no calendar, tasks":        "☀️ Сегодня, вт, 29 сен\nЗадачи:\n☐ Pick up the part",
-		"task card today":           "☐ Pick up the part\nНапомню сегодня в 18:00, итог дня в 21:00",
-		"task card tomorrow":        "☐ Pick up the part\nНапомню завтра в 18:00, итог дня в 21:00",
+		"task card today":           "☐ Pick up the part\nНапомню сегодня в 18:00, итог дня сегодня в 21:00",
+		"task card tomorrow":        "☐ Pick up the part\nНапомню завтра в 18:00, итог дня завтра в 21:00",
 		"task moved to a date":      "⏰ Pick up the part → пт, 2 окт в 09:00",
 		"day review":                "🌙 Итог дня:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (завтра в 18:00)\n4. ✕ Old idea",
 		"review button":             "3 → завтра",
@@ -211,8 +214,8 @@ func TestRenderEn(t *testing.T) {
 		"digest, only tasks":        "☀️ Today, Tue, Sep 29, no events\n\nTasks:\n☐ Pick up the part",
 		"digest, no calendar":       "☀️ Today, Tue, Sep 29, no tasks",
 		"no calendar, tasks":        "☀️ Today, Tue, Sep 29\nTasks:\n☐ Pick up the part",
-		"task card today":           "☐ Pick up the part\nReminder today at 18:00, day review at 21:00",
-		"task card tomorrow":        "☐ Pick up the part\nReminder tomorrow at 18:00, day review at 21:00",
+		"task card today":           "☐ Pick up the part\nReminder today at 18:00, day review today at 21:00",
+		"task card tomorrow":        "☐ Pick up the part\nReminder tomorrow at 18:00, day review tomorrow at 21:00",
 		"task moved to a date":      "⏰ Pick up the part → Fri, Oct 2 at 09:00",
 		"day review":                "🌙 Day review:\n1. ☐ Pick up the part\n2. ☑ Call the bank\n3. → Renew passport (tomorrow at 18:00)\n4. ✕ Old idea",
 		"review button":             "3 → tomorrow",

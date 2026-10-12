@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -108,7 +109,7 @@ func TestSparePartScenario(t *testing.T) {
 
 	// 10:00 — the task and its card.
 	a.HandleText(ctx, at(t, "2026-09-29 10:00"), tg.Message{ChatID: 42, Text: "/task забрать запчасть вечером"})
-	if send.sent[0] != "☐ Забрать запчасть\nНапомню сегодня в 18:00, итог дня в 21:00" {
+	if send.sent[0] != "☐ Забрать запчасть\nНапомню сегодня в 18:00, итог дня сегодня в 21:00" {
 		t.Fatalf("card = %q", send.sent[0])
 	}
 	if !sameRows(dataOf(send.keyboards[0]), [][]string{{"✓ Ок=card:1:ok", "✎ Время=card:1:time", "✕ Отмена=card:1:cancel"}}) {
@@ -175,6 +176,35 @@ func TestSparePartScenario(t *testing.T) {
 	}
 }
 
+// The card names the day review that will actually see the task:
+// a reminder up to 21:00 is in that day's review, a later one in the next day's.
+func TestCardNamesTheDayReview(t *testing.T) {
+	ctx := context.Background()
+	a, _, st := newTestApp(t, nil, nil)
+	now := at(t, "2026-09-29 10:00") // Tuesday
+	cases := map[string]string{
+		"2026-09-29 18:00": "Напомню сегодня в 18:00, итог дня сегодня в 21:00",
+		"2026-09-29 21:00": "Напомню сегодня в 21:00, итог дня сегодня в 21:00",
+		"2026-09-29 22:00": "Напомню сегодня в 22:00, итог дня завтра в 21:00",
+		"2026-09-30 23:30": "Напомню завтра в 23:30, итог дня чт, 1 окт в 21:00",
+		"2026-10-02 09:00": "Напомню пт, 2 окт в 09:00, итог дня пт, 2 окт в 21:00",
+	}
+	for remind, want := range cases {
+		id, err := st.CreateTask(ctx, "Call mom", at(t, remind), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		task, _ := st.Task(ctx, id)
+		text, err := a.render("task_card", a.cardView(task, now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.TrimPrefix(text, "☐ Call mom\n"); got != want {
+			t.Errorf("remind %s: %q, want %q", remind, got, want)
+		}
+	}
+}
+
 func TestCardTimeAndCancel(t *testing.T) {
 	ctx := context.Background()
 	a, send, st := newTestApp(t, nil, nil)
@@ -192,7 +222,7 @@ func TestCardTimeAndCancel(t *testing.T) {
 
 	// Morning has passed today, so it means tomorrow morning.
 	press(a, send, now, 1, "card:1:at-morning")
-	if e := lastEdit(t, send); e.text != "☐ Call the bank\nНапомню завтра в 09:00, итог дня в 21:00" || len(e.keyboard) != 1 {
+	if e := lastEdit(t, send); e.text != "☐ Call the bank\nНапомню завтра в 09:00, итог дня завтра в 21:00" || len(e.keyboard) != 1 {
 		t.Fatalf("after choosing morning = %+v", e)
 	}
 	if task, _ := st.Task(ctx, 1); !task.Remind.Equal(at(t, "2026-09-30 09:00")) {

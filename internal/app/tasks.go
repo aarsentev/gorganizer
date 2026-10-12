@@ -142,12 +142,18 @@ func (a *App) when(t, now time.Time) whenView {
 type taskView struct {
 	Title   string
 	When    whenView
-	Checkin time.Time
+	Checkin whenView
 }
 
+// cardView names the day review that will see the task: the review takes tasks whose
+// time has come, so a reminder up to eod is in that day's review, a later one in the next day's.
 func (a *App) cardView(t store.Task, now time.Time) taskView {
-	checkin := atClock(midnight(t.Remind.In(a.Loc())), a.cfg.Anchors["eod"])
-	return taskView{Title: t.Title, When: a.when(t.Remind, now), Checkin: checkin}
+	remind := t.Remind.In(a.Loc())
+	checkin := atClock(midnight(remind), a.cfg.Anchors["eod"])
+	if remind.After(checkin) {
+		checkin = atClock(midnight(remind).AddDate(0, 0, 1), a.cfg.Anchors["eod"])
+	}
+	return taskView{Title: t.Title, When: a.when(t.Remind, now), Checkin: a.when(checkin, now)}
 }
 
 func (a *App) cardKeyboard(id int64) [][]tg.Button {
