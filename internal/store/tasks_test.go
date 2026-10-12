@@ -114,6 +114,28 @@ func TestOpenTasksDue(t *testing.T) {
 	}
 }
 
+func TestDisarmDueTasks(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 9, 29, 19, 0, 0, 0, time.UTC)
+	due, _ := s.CreateTask(ctx, "Due", now.Add(-time.Hour), now)
+	ahead, _ := s.CreateTask(ctx, "Still ahead", now.Add(time.Hour), now)
+	closed, _ := s.CreateTask(ctx, "Closed", now.Add(-time.Hour), now)
+	s.SetTaskStatus(ctx, closed, TaskDone)
+
+	if err := s.DisarmDueTasks(ctx, now); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, _ := s.DueTasks(ctx, now.Add(2*time.Hour)); !sameIDs(taskIDs(got), []int64{ahead}) {
+		t.Fatalf("due later = %v, want only [%d]: the due one is disarmed", taskIDs(got), ahead)
+	}
+	// Disarmed is not closed: the day review still sees it.
+	if got, _ := s.OpenTasksDue(ctx, now); !sameIDs(taskIDs(got), []int64{due}) {
+		t.Fatalf("open and due = %v, want [%d]", taskIDs(got), due)
+	}
+}
+
 func TestMissingTask(t *testing.T) {
 	ctx := context.Background()
 	s := open(t)

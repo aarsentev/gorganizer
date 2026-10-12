@@ -10,7 +10,7 @@ import (
 
 // menu is the Telegram command menu, in order. Descriptions are the cmd_<name>
 // blocks of the messages, so the menu changes language with the bot.
-var menu = []string{"task", "note", "inbox", "tz", "lang"}
+var menu = []string{"task", "note", "inbox", "tz", "pause", "lang"}
 
 type langView struct {
 	Lang      string

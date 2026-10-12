@@ -19,7 +19,12 @@ Plain text: I'll ask whether it's a task or a note.
 {{define "cmd_note"}}Note: a thought, a fact, a link{{end}}
 {{define "cmd_inbox"}}Notes inbox{{end}}
 {{define "cmd_tz"}}Time zone: /tz toronto{{end}}
+{{define "cmd_pause"}}Pause: /pause 3d, /pause off{{end}}
 {{define "cmd_lang"}}Language: /lang ru{{end}}
+
+{{define "pause_on"}}⏸ Paused until {{date .}}, {{clock .}}. Lift: /pause off{{end}}
+{{define "pause_off"}}▶️ Not paused. Pause: /pause 3d or /pause 12h{{end}}
+{{define "pause_usage"}}Example: /pause 3d, /pause 12h, /pause off. A year at most.{{end}}
 
 {{define "title"}}{{or . "(untitled)"}}{{end}}
 

@@ -128,6 +128,23 @@ func TestStateAccessors(t *testing.T) {
 	if id, _ := s.EveningMessageID(ctx); id != 0 {
 		t.Fatalf("EveningMessageID after clear = %d", id)
 	}
+
+	if until, err := s.PausedUntil(ctx); err != nil || !until.IsZero() {
+		t.Fatalf("initial PausedUntil = %v, %v", until, err)
+	}
+	end := time.Date(2026, 10, 2, 12, 5, 0, 0, time.UTC)
+	if err := s.SetPausedUntil(ctx, end); err != nil {
+		t.Fatal(err)
+	}
+	if until, _ := s.PausedUntil(ctx); !until.Equal(end) {
+		t.Fatalf("PausedUntil = %v, want %v", until, end)
+	}
+	if err := s.SetPausedUntil(ctx, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	if until, _ := s.PausedUntil(ctx); !until.IsZero() {
+		t.Fatalf("PausedUntil after lifting = %v", until)
+	}
 }
 
 func TestUnfire(t *testing.T) {

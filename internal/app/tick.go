@@ -24,6 +24,16 @@ func Every(ctx context.Context, d time.Duration, f func(context.Context, time.Ti
 // Tick runs every minute and reads only the local cache, never Google.
 // It is idempotent: a missed tick is harmless, the next one catches up.
 func (a *App) Tick(ctx context.Context, now time.Time) {
+	// A pause silences everything. Task reminders that come due are disarmed rather than
+	// held: after a week away they would all arrive at once, while the tasks themselves
+	// stay open and reach the next digest and day review. Checked before quiet hours,
+	// so a night inside the pause is disarmed too and does not come out at 07:00.
+	if a.paused(ctx, now) {
+		if err := a.store.DisarmDueTasks(ctx, now); err != nil {
+			a.log.Error("pause", "err", err)
+		}
+		return
+	}
 	// Quiet hours only block sending. Everything due meanwhile goes out on the first tick after.
 	if a.quiet(now) {
 		return

@@ -71,6 +71,16 @@ func (s *Store) MarkTaskReminded(ctx context.Context, id int64, remind time.Time
 	return nil
 }
 
+// DisarmDueTasks marks every open task whose time has come as reminded, sending nothing.
+// Used during a pause: the tasks stay open and reach the next digest and day review.
+func (s *Store) DisarmDueTasks(ctx context.Context, now time.Time) error {
+	if _, err := s.db.ExecContext(ctx,
+		"UPDATE tasks SET reminded = 1 WHERE status = 'open' AND reminded = 0 AND remind_utc <= ?", now.Unix()); err != nil {
+		return fmt.Errorf("disarm tasks: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) SetTaskStatus(ctx context.Context, id int64, status string) error {
 	return s.updateTask(ctx, id, "UPDATE tasks SET status = ? WHERE id = ?", status, id)
 }

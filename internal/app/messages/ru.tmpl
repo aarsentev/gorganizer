@@ -19,7 +19,12 @@
 {{define "cmd_note"}}Заметка: мысль, факт, ссылка{{end}}
 {{define "cmd_inbox"}}Ящик заметок{{end}}
 {{define "cmd_tz"}}Часовой пояс: /tz toronto{{end}}
+{{define "cmd_pause"}}Пауза: /pause 3d, /pause off{{end}}
 {{define "cmd_lang"}}Язык: /lang en{{end}}
+
+{{define "pause_on"}}⏸ Пауза до {{date .}}, {{clock .}}. Снять: /pause off{{end}}
+{{define "pause_off"}}▶️ Паузы нет. Поставить: /pause 3d или /pause 12h{{end}}
+{{define "pause_usage"}}Пример: /pause 3d, /pause 12h, /pause off. Не больше года.{{end}}
 
 {{define "title"}}{{or . "(без названия)"}}{{end}}
 

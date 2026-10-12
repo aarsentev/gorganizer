@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // Keys of the state table. Callers use the named accessors below, never raw keys.
@@ -14,7 +15,30 @@ const (
 	keyLang             = "lang"
 	keySyncToken        = "sync_token"
 	keyEveningMessageID = "evening_message_id"
+	keyPausedUntil      = "paused_until"
 )
+
+// PausedUntil returns the end of the pause, or the zero time if none was set.
+// A past time means the pause is over.
+func (s *Store) PausedUntil(ctx context.Context) (time.Time, error) {
+	value, err := s.get(ctx, keyPausedUntil)
+	if err != nil || value == "" {
+		return time.Time{}, err
+	}
+	unix, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("state %s: %w", keyPausedUntil, err)
+	}
+	return time.Unix(unix, 0).UTC(), nil
+}
+
+// SetPausedUntil stores the end of the pause; the zero time lifts it.
+func (s *Store) SetPausedUntil(ctx context.Context, until time.Time) error {
+	if until.IsZero() {
+		return s.del(ctx, keyPausedUntil)
+	}
+	return s.set(ctx, keyPausedUntil, strconv.FormatInt(until.Unix(), 10))
+}
 
 // TZ returns the stored IANA zone name, or "" if it was never set.
 func (s *Store) TZ(ctx context.Context) (string, error) {
