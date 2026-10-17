@@ -15,10 +15,21 @@ type calendarReply struct {
 	err     error
 }
 
-// fakeCalendar returns prepared replies in order and records the tokens it was asked with.
+// fakeCalendar returns prepared replies in order and records the tokens it was asked with,
+// and the events it was asked to create.
 type fakeCalendar struct {
-	replies []calendarReply
-	tokens  []string
+	replies   []calendarReply
+	tokens    []string
+	created   []gcal.NewEvent
+	createErr error // the next creates fail while it is set
+}
+
+func (f *fakeCalendar) Create(_ context.Context, e gcal.NewEvent) (gcal.Event, error) {
+	if f.createErr != nil {
+		return gcal.Event{}, f.createErr
+	}
+	f.created = append(f.created, e)
+	return gcal.Event{ID: e.ID, Title: e.Title, Start: e.Start.UTC(), End: e.End.UTC(), Location: e.Location}, nil
 }
 
 func (f *fakeCalendar) Changes(_ context.Context, token string, _ time.Time) (gcal.Changes, error) {
