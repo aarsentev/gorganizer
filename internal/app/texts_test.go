@@ -137,6 +137,7 @@ func renderSamples() map[string]struct {
 		"inbox, one page":           {"inbox", inboxView{Open: 1, Page: 1, Pages: 1, Notes: inbox.Notes[:1]}},
 		"closed note button":        {"btn_note", inbox.Notes[1]},
 		"help":                      {"help", []tg.Command{{Name: "task", Description: "Task"}, {Name: "tz", Description: "Zone"}}},
+		"event card":                {"event_card", eventCard{Title: "Doctor", Start: at(9, 0), End: at(10, 0), SameDay: true, Zone: "Europe/Warsaw", Location: "Clinic", Remind: &whenView{T: at(8, 0), Today: true}}},
 	}
 }
 
@@ -193,6 +194,7 @@ func TestRenderRu(t *testing.T) {
 		"inbox, one page":           "📥 Ящик: 1\n1. ☐ Buy a bulb",
 		"closed note button":        "2 ☑",
 		"help":                      "/task — Task\n/tz — Zone\n\nПросто текст — спрошу, задача это или заметка.",
+		"event card":                "📅 Doctor\nвт, 29 сен, 09:00–10:00 (Europe/Warsaw)\n📍 Clinic\nНапомню сегодня в 08:00",
 	})
 }
 
@@ -224,6 +226,7 @@ func TestRenderEn(t *testing.T) {
 		"inbox, one page":           "📥 Inbox: 1\n1. ☐ Buy a bulb",
 		"closed note button":        "2 ☑",
 		"help":                      "/task — Task\n/tz — Zone\n\nPlain text: I'll ask whether it's a task or a note.",
+		"event card":                "📅 Doctor\nTue, Sep 29, 09:00–10:00 (Europe/Warsaw)\n📍 Clinic\nReminder today at 08:00",
 	})
 }
 

@@ -119,3 +119,16 @@
 {{define "btn_last"}}»{{end}}
 {{define "btn_as_task"}}☐ Задача{{end}}
 {{define "btn_as_note"}}📥 Заметка{{end}}
+
+{{define "event_card"}}
+📅 {{.Title}}
+{{date .Start}}, {{clock .Start}}–{{if not .SameDay}}{{date .End}}, {{end}}{{clock .End}} ({{.Zone}})
+{{- with .Location}}
+📍 {{.}}
+{{- end}}
+{{- if .RemindNow}}
+Напомню сразу
+{{- else if .Remind}}
+Напомню {{template "when" .Remind}}
+{{- end}}
+{{end}}

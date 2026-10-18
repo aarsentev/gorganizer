@@ -119,3 +119,16 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_last"}}»{{end}}
 {{define "btn_as_task"}}☐ Task{{end}}
 {{define "btn_as_note"}}📥 Note{{end}}
+
+{{define "event_card"}}
+📅 {{.Title}}
+{{date .Start}}, {{clock .Start}}–{{if not .SameDay}}{{date .End}}, {{end}}{{clock .End}} ({{.Zone}})
+{{- with .Location}}
+📍 {{.}}
+{{- end}}
+{{- if .RemindNow}}
+Reminder right away
+{{- else if .Remind}}
+Reminder {{template "when" .Remind}}
+{{- end}}
+{{end}}
