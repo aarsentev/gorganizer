@@ -55,13 +55,3 @@ func (a *App) quiet(now time.Time) bool {
 	}
 	return m >= from || m < to // wraps over midnight, e.g. 23:00–08:00
 }
-
-// clockMinutes turns "HH:MM" (validated by config) into minutes since midnight.
-func clockMinutes(s string) int {
-	t, _ := time.Parse("15:04", s)
-	return t.Hour()*60 + t.Minute()
-}
-
-func minuteOfDay(t time.Time) int {
-	return t.Hour()*60 + t.Minute()
-}

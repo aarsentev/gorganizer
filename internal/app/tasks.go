@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -23,7 +21,6 @@ var (
 		"eod": "eod",
 	}
 	tomorrowWords = map[string]bool{"tomorrow": true, "завтра": true}
-	clockRe       = regexp.MustCompile(`^([01]?\d|2[0-3]):([0-5]\d)$`)
 )
 
 var errNoTitle = errors.New("no title")
@@ -66,28 +63,6 @@ tail:
 	return capitalize(strings.Join(words, " ")), a.nextAt(now, clock, tomorrow), nil
 }
 
-// nextAt is the clock time today, or tomorrow if that has passed or was asked for.
-func (a *App) nextAt(now time.Time, clock string, tomorrow bool) time.Time {
-	local := now.In(a.Loc())
-	day := midnight(local)
-	if tomorrow {
-		day = day.AddDate(0, 0, 1)
-	}
-	t := atClock(day, clock)
-	if !tomorrow && !t.After(local) {
-		t = atClock(day.AddDate(0, 0, 1), clock)
-	}
-	return t
-}
-
-// atClock is the given "H:MM" on the local day; time.Date handles DST gaps.
-func atClock(day time.Time, clock string) time.Time {
-	m := clockRe.FindStringSubmatch(clock)
-	h, _ := strconv.Atoi(m[1])
-	min, _ := strconv.Atoi(m[2])
-	return time.Date(day.Year(), day.Month(), day.Day(), h, min, 0, 0, day.Location())
-}
-
 func capitalize(s string) string {
 	r, size := utf8.DecodeRuneInString(s)
 	return string(unicode.ToUpper(r)) + s[size:]
@@ -125,18 +100,6 @@ func (a *App) createTask(ctx context.Context, now time.Time, args string) (strin
 	}
 	text, err := a.render("task_card", a.cardView(t, now))
 	return text, a.cardKeyboard(id), err
-}
-
-// whenView lets templates say "today at 18:00" / "tomorrow at 18:00" / "Tue, Sep 29 at 18:00".
-type whenView struct {
-	T               time.Time
-	Today, Tomorrow bool
-}
-
-func (a *App) when(t, now time.Time) whenView {
-	local, today := t.In(a.Loc()), midnight(now.In(a.Loc()))
-	day := midnight(local)
-	return whenView{T: local, Today: day.Equal(today), Tomorrow: day.Equal(today.AddDate(0, 0, 1))}
 }
 
 type taskView struct {

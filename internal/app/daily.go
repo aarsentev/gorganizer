@@ -172,7 +172,3 @@ func (a *App) cleanupReminders(ctx context.Context, today time.Time) {
 		}
 	}
 }
-
-func midnight(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}

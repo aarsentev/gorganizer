@@ -46,9 +46,3 @@ func splitCommand(text string) (string, string) {
 	cmd, _, _ = strings.Cut(cmd, "@")
 	return strings.ToLower(cmd), strings.TrimSpace(args)
 }
-
-func (a *App) reply(ctx context.Context, chatID int64, text string) {
-	if _, err := a.send.Send(ctx, chatID, text); err != nil {
-		a.log.Error("reply", "chat_id", chatID, "err", err)
-	}
-}
