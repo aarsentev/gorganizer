@@ -1,11 +1,15 @@
 package app
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"go-organizer/internal/config"
 	"go-organizer/internal/intent"
+	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 func intentEvent(title, location string, start *time.Time, minutes int) intent.Intent {
@@ -48,5 +52,37 @@ func TestEventCard(t *testing.T) {
 	quiet, _, _ := newTestApp(t, withCalendar(), func(c *config.Config) { c.Reminders.EventOffsetsMin = nil })
 	if got := render(quiet, "30.09 9:00-10:00 Приём"); got != "📅 Приём\nср, 30 сен, 09:00–10:00 (Europe/Warsaw)" {
 		t.Errorf("no offsets:\n%s", got)
+	}
+}
+
+func TestAddShowsCardAndCancels(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, withCalendar(), nil)
+	now := at(t, "2026-09-29 10:00")
+
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/add 30.09 9:00-10:00 приём у врача @ клиника на Ленина 12"})
+	if send.sent[0] != "📅 Приём у врача\nср, 30 сен, 09:00–10:00 (Europe/Warsaw)\n📍 клиника на Ленина 12\nНапомню завтра в 08:00" {
+		t.Fatalf("card = %q", send.sent[0])
+	}
+	if !sameRows(dataOf(send.keyboards[0]), [][]string{{"✕ Отмена=evt:1:cancel"}}) {
+		t.Fatalf("card buttons = %v", dataOf(send.keyboards[0]))
+	}
+	if _, err := st.PendingFor(ctx, 42); err != nil {
+		t.Fatalf("no draft behind the card: %v", err)
+	}
+
+	press(a, send, now, 1, "evt:1:cancel")
+	if ed := lastEdit(t, send); ed.text != "✕ Приём у врача — отменено" || ed.keyboard != nil {
+		t.Fatalf("after cancel = %q %v", ed.text, ed.keyboard)
+	}
+	if _, err := st.PendingFor(ctx, 42); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("draft after cancel: %v", err)
+	}
+
+	// A double tap: the second press finds no draft and leaves the card as it is.
+	edits := len(send.edits)
+	press(a, send, now, 1, "evt:1:cancel")
+	if len(send.edits) != edits {
+		t.Fatalf("the second tap edited the card")
 	}
 }

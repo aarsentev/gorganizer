@@ -1,10 +1,14 @@
 package app
 
 import (
+	"context"
+	"errors"
 	"slices"
 	"time"
 
 	"go-organizer/internal/intent"
+	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 // eventCard is the confirmation card of an event draft. It always shows the zone:
@@ -39,4 +43,32 @@ func (a *App) eventCard(in intent.Intent, now time.Time) eventCard {
 		}
 	}
 	return c
+}
+
+func (a *App) eventKeyboard(id int64) [][]tg.Button {
+	return [][]tg.Button{{
+		{Text: a.label("btn_cancel", nil), Data: buttonData("evt", id, "cancel")},
+	}}
+}
+
+// onEvent handles the buttons under the event card; id is the draft's.
+func (a *App) onEvent(ctx context.Context, cb tg.Callback, id int64, action string) error {
+	_, in, err := a.draft(ctx, id)
+	if errors.Is(err, store.ErrNotFound) {
+		// Already cancelled: the second tap of a double tap. Editing the card now
+		// would overwrite what the first tap wrote there.
+		a.log.Info("event card without a draft", "draft_id", id, "action", action)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	switch action {
+	case "cancel":
+		if err := a.store.DeletePending(ctx, id); err != nil {
+			return err
+		}
+		return a.editBlock(ctx, cb, "event_cancelled", in, nil)
+	}
+	return errors.New("unknown event action " + action)
 }

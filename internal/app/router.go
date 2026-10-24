@@ -16,6 +16,8 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 		if args != "" {
 			a.askKind(ctx, m)
 		}
+	case "/add":
+		a.handleAdd(ctx, now, m.ChatID, args)
 	case "/task":
 		a.handleTask(ctx, now, m.ChatID, args)
 	case "/note":

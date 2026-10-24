@@ -1,8 +1,12 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"testing"
+
+	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 func TestParseAdd(t *testing.T) {
@@ -120,5 +124,31 @@ func TestMoment(t *testing.T) {
 		if got != c.start || when != c.when {
 			t.Errorf("moment(%+v) = %q, %q; want %q, %q", c.said, got, when, c.start, c.when)
 		}
+	}
+}
+
+func TestAddRefusals(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, withCalendar(), nil)
+	now := at(t, "2026-09-29 10:00")
+
+	for _, args := range []string{"", "Приём у врача", "30.09 Приём", "9:00 Приём", "29.09 8:00-9:00 Приём", "31.02 9:00-10:00 Приём"} {
+		a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/add " + args})
+	}
+	usage := "Пример: /add 30.09 9:00-10:00 Приём у врача @ клиника\nДата — числом, время — начало и конец, место — после @."
+	incomplete := "Пока нужно указать всё — дату, начало и конец: /add 30.09 9:00-10:00 Приём у врача"
+	want := []string{usage, incomplete, incomplete, incomplete, "Это время уже прошло: вт, 29 сен, 08:00", usage}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
+	}
+	if _, err := st.PendingFor(ctx, 42); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("a refused /add left a draft: %v", err)
+	}
+
+	// Without a calendar there is nowhere to add to.
+	off, offSend, _ := newTestApp(t, nil, nil)
+	off.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/add 30.09 9:00-10:00 Приём"})
+	if !sameStrings(offSend.sent, []string{"Календарь не подключён"}) {
+		t.Fatalf("without a calendar: %q", offSend.sent)
 	}
 }

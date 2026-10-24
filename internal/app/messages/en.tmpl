@@ -15,6 +15,7 @@ Change it: /tz toronto or /tz America/Toronto{{end}}
 Plain text: I'll ask whether it's a task or a note.
 {{end}}
 
+{{define "cmd_add"}}Event: /add 30.09 9:00-10:00 Doctor{{end}}
 {{define "cmd_task"}}Task: /task pick up the part evening{{end}}
 {{define "cmd_note"}}Note: a thought, a fact, a link{{end}}
 {{define "cmd_inbox"}}Notes inbox{{end}}
@@ -132,3 +133,10 @@ Reminder right away
 Reminder {{template "when" .Remind}}
 {{- end}}
 {{end}}
+
+{{define "add_usage"}}Example: /add 30.09 9:00-10:00 Doctor @ clinic
+The date in numbers, the time as start and end, the place after @.{{end}}
+{{define "add_incomplete"}}For now say it all, the date, start and end: /add 30.09 9:00-10:00 Doctor{{end}}
+{{define "add_past"}}That time has passed: {{date .}}, {{clock .}}{{end}}
+{{define "add_no_calendar"}}No calendar connected{{end}}
+{{define "event_cancelled"}}✕ {{.Title}} — cancelled{{end}}

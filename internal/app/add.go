@@ -1,12 +1,54 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"go-organizer/internal/intent"
 )
+
+// handleAdd turns a fully said /add into a draft and shows its card. Until the
+// questions come (stage 4b), anything missing is answered with an example.
+func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args string) {
+	if a.cal == nil {
+		a.replyBlock(ctx, chatID, "add_no_calendar", nil)
+		return
+	}
+	title, location, s, err := parseAdd(args)
+	if err != nil {
+		a.replyBlock(ctx, chatID, "add_usage", nil)
+		return
+	}
+	start, _ := a.moment(s, now)
+	if start == nil || s.duration == 0 {
+		a.replyBlock(ctx, chatID, "add_incomplete", nil)
+		return
+	}
+	if !start.After(now) {
+		a.replyBlock(ctx, chatID, "add_past", start.In(a.Loc()))
+		return
+	}
+	in := intent.Intent{
+		Action: "create", Kind: "event", Title: title, Start: start, DurationMin: s.duration, Location: location,
+	}
+	id, err := a.newDraft(ctx, chatID, in, "", now)
+	if err != nil {
+		a.log.Error("add", "err", err)
+		return
+	}
+	text, err := a.render("event_card", a.eventCard(in, now))
+	if err != nil {
+		a.log.Error("render", "err", err)
+		return
+	}
+	if _, err := a.send.SendButtons(ctx, chatID, text, a.eventKeyboard(id)); err != nil {
+		a.log.Error("send event card", "err", err)
+	}
+}
 
 // What /add understands at either end of the title, in any order: a date, and a time
 // or a time range. Only forms without a language: words like "tomorrow", "Monday" or
