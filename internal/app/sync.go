@@ -13,6 +13,7 @@ import (
 type Calendar interface {
 	Changes(ctx context.Context, syncToken string, now time.Time) (gcal.Changes, error)
 	Create(ctx context.Context, e gcal.NewEvent) (gcal.Event, error)
+	Check(ctx context.Context) error
 }
 
 // Sync runs every 5 minutes. Errors are only logged: the cache stays as it was

@@ -140,3 +140,6 @@
 {{define "add_past"}}Это время уже прошло: {{date .}}, {{clock .}}{{end}}
 {{define "add_no_calendar"}}Календарь не подключён{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — отменено{{end}}
+
+{{define "build"}}Версия {{.Version}}{{if not .Built.IsZero}}, собрана {{date .Built}}, {{clock .Built}}{{end}}
+Telegram ✓ · база {{if .DBErr}}⚠️ {{.DBErr}}{{else}}✓ (схема {{.Schema}}){{end}} · календарь {{if .NoCalendar}}не подключён{{else if .CalendarErr}}⚠️ {{.CalendarErr}}{{else}}✓{{end}}{{end}}

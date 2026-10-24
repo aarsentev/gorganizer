@@ -23,3 +23,12 @@ func New(ctx context.Context, saFile, calendarID string) (*Client, error) {
 	}
 	return &Client{svc: svc, calendarID: calendarID}, nil
 }
+
+// Check reads one event: the key, the sharing and the network all work. It writes nothing,
+// unlike doctor, so it can run on every deploy.
+func (c *Client) Check(ctx context.Context) error {
+	if _, err := c.svc.Events.List(c.calendarID).MaxResults(1).Context(ctx).Do(); err != nil {
+		return fmt.Errorf("read calendar: %w", err)
+	}
+	return nil
+}

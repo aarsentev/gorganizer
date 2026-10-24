@@ -16,7 +16,17 @@ const (
 	keySyncToken        = "sync_token"
 	keyEveningMessageID = "evening_message_id"
 	keyPausedUntil      = "paused_until"
+	keyLastBuild        = "last_build"
 )
+
+// LastBuild returns the build time the bot last started with, or "" before the first start.
+func (s *Store) LastBuild(ctx context.Context) (string, error) {
+	return s.get(ctx, keyLastBuild)
+}
+
+func (s *Store) SetLastBuild(ctx context.Context, built string) error {
+	return s.set(ctx, keyLastBuild, built)
+}
 
 // PausedUntil returns the end of the pause, or the zero time if none was set.
 // A past time means the pause is over.

@@ -22,6 +22,11 @@ type fakeCalendar struct {
 	tokens    []string
 	created   []gcal.NewEvent
 	createErr error // the next creates fail while it is set
+	checkErr  error
+}
+
+func (f *fakeCalendar) Check(context.Context) error {
+	return f.checkErr
 }
 
 func (f *fakeCalendar) Create(_ context.Context, e gcal.NewEvent) (gcal.Event, error) {

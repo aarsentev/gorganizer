@@ -145,6 +145,20 @@ func TestStateAccessors(t *testing.T) {
 	if until, _ := s.PausedUntil(ctx); !until.IsZero() {
 		t.Fatalf("PausedUntil after lifting = %v", until)
 	}
+
+	if built, err := s.LastBuild(ctx); err != nil || built != "" {
+		t.Fatalf("initial LastBuild = %q, %v", built, err)
+	}
+	if err := s.SetLastBuild(ctx, "2026-10-24T10:20Z"); err != nil {
+		t.Fatal(err)
+	}
+	if built, _ := s.LastBuild(ctx); built != "2026-10-24T10:20Z" {
+		t.Fatalf("LastBuild = %q", built)
+	}
+
+	if version, err := s.SchemaVersion(ctx); err != nil || version != 4 {
+		t.Fatalf("SchemaVersion = %d, %v; want 4", version, err)
+	}
 }
 
 func TestUnfire(t *testing.T) {

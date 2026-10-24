@@ -81,6 +81,10 @@ func run() error {
 	log.Info("Started", "version", version, "built", built, "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath, "calendar", cal != nil)
 	// Every start, so a menu changed in a new version reaches Telegram with the deploy.
 	a.PublishCommands(ctx)
+	// A local go run has no build time: it does not announce itself.
+	if built != "unknown" {
+		a.AnnounceBuild(ctx, version, built)
+	}
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {

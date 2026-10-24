@@ -42,6 +42,15 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// SchemaVersion is the number of the last applied migration.
+func (s *Store) SchemaVersion(ctx context.Context) (int, error) {
+	var version int
+	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+		return 0, fmt.Errorf("read user_version: %w", err)
+	}
+	return version, nil
+}
+
 // migrate applies migrations/NNNN_*.sql with NNNN > PRAGMA user_version,
 // each in its own transaction together with the version bump.
 func (s *Store) migrate(ctx context.Context) error {

@@ -140,3 +140,6 @@ The date in numbers, the time as start and end, the place after @.{{end}}
 {{define "add_past"}}That time has passed: {{date .}}, {{clock .}}{{end}}
 {{define "add_no_calendar"}}No calendar connected{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — cancelled{{end}}
+
+{{define "build"}}Version {{.Version}}{{if not .Built.IsZero}}, built {{date .Built}}, {{clock .Built}}{{end}}
+Telegram ✓ · database {{if .DBErr}}⚠️ {{.DBErr}}{{else}}✓ (schema {{.Schema}}){{end}} · calendar {{if .NoCalendar}}not connected{{else if .CalendarErr}}⚠️ {{.CalendarErr}}{{else}}✓{{end}}{{end}}
