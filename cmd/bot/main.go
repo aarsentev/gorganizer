@@ -19,6 +19,13 @@ import (
 	"go-organizer/internal/tg"
 )
 
+// Set when the image is built (make image, -ldflags -X): the commit and when it was
+// built, so the log tells what runs on the VM. go run keeps the defaults.
+var (
+	version = "dev"
+	built   = "unknown"
+)
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("Fatal", "err", err)
@@ -71,7 +78,7 @@ func run() error {
 		return err
 	}
 
-	log.Info("Started", "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath, "calendar", cal != nil)
+	log.Info("Started", "version", version, "built", built, "tz", a.Loc().String(), "lang", a.Lang(), "db", cfg.DBPath, "calendar", cal != nil)
 	// Every start, so a menu changed in a new version reaches Telegram with the deploy.
 	a.PublishCommands(ctx)
 

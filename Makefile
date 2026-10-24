@@ -4,7 +4,12 @@ VM_USER ?= $(USER)
 IMAGE   := organizer
 SSH     := ssh -i ~/.ssh/google_compute_engine $(VM_USER)@$(VM_HOST)
 
-.PHONY: run test image deploy upload logs restart reboot docker-start docker-stop
+# The commit an image is built from, and when: they go into the binary and the image
+# labels, so the log and make version tell what runs on the VM.
+VERSION := $(shell git describe --always)
+BUILT   := $(shell date -u +%Y-%m-%dT%H:%MZ)
+
+.PHONY: run test image deploy upload logs version restart reboot docker-start docker-stop
 
 run:
 	set -a && . ./.env && set +a && go run ./cmd/bot
@@ -13,16 +18,20 @@ test:
 	go test ./...
 
 image: docker-start
-	docker build --platform linux/amd64 -t $(IMAGE) .
+	docker build --platform linux/amd64 --build-arg VERSION=$(VERSION) --build-arg BUILT=$(BUILT) -t $(IMAGE) .
 
 # Docker Desktop is needed only for the build. deploy quits it again,
 # but only if it was not running before: other projects may be using it.
+# A deploy that went through marks its commit: the deployed tag moves to it, and a
+# deploy-<date> tag stays as history. git log deployed..HEAD lists what is not out yet.
 deploy:
 	@if docker info >/dev/null 2>&1; then \
 		$(MAKE) upload; \
 	else \
 		$(MAKE) upload; status=$$?; $(MAKE) docker-stop; exit $$status; \
 	fi
+	git tag -f deployed
+	git tag -f deploy-$$(date +%Y-%m-%d-%H%M)
 
 # docker stop sends SIGTERM and waits, so the bot closes the database cleanly.
 upload: image
@@ -33,6 +42,10 @@ upload: image
 
 logs:
 	$(SSH) 'sudo docker logs -f --tail 100 organizer'
+
+# What runs on the VM: the labels of the running container's image.
+version:
+	$(SSH) "sudo docker inspect --format '{{json .Config.Labels}}' organizer"
 
 restart:
 	$(SSH) 'sudo docker restart organizer'
