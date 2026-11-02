@@ -21,6 +21,7 @@
 {{define "cmd_inbox"}}Ящик заметок{{end}}
 {{define "cmd_tz"}}Часовой пояс: /tz toronto{{end}}
 {{define "cmd_pause"}}Пауза: /pause 3d, /pause off{{end}}
+{{define "cmd_status"}}Версия, часовой пояс, пауза{{end}}
 {{define "cmd_lang"}}Язык: /lang en{{end}}
 
 {{define "pause_on"}}⏸ Пауза до {{date .}}, {{clock .}}. Снять: /pause off{{end}}
@@ -141,5 +142,10 @@
 {{define "add_no_calendar"}}Календарь не подключён{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — отменено{{end}}
 
-{{define "build"}}Версия {{.Version}}{{if not .Built.IsZero}}, собрана {{date .Built}}, {{clock .Built}}{{end}}
+{{define "build_version"}}Версия {{.Version}}{{if not .Built.IsZero}}, собрана {{date .Built}}, {{clock .Built}}{{end}}{{end}}
+{{define "build"}}{{template "build_version" .}}
 Telegram ✓ · база {{if .DBErr}}⚠️ {{.DBErr}}{{else}}✓ (схема {{.Schema}}){{end}} · календарь {{if .NoCalendar}}не подключён{{else if .CalendarErr}}⚠️ {{.CalendarErr}}{{else}}✓{{end}}{{end}}
+
+{{define "status"}}{{template "build_version" .}}
+{{template "tz" .TZ}}
+{{if .Paused.IsZero}}Паузы нет{{else}}⏸ Пауза до {{date .Paused}}, {{clock .Paused}}{{end}}{{end}}

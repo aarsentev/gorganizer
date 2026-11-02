@@ -21,6 +21,7 @@ func TestHelpAndMenu(t *testing.T) {
 		"/inbox — Ящик заметок\n" +
 		"/tz — Часовой пояс: /tz toronto\n" +
 		"/pause — Пауза: /pause 3d, /pause off\n" +
+		"/status — Версия, часовой пояс, пауза\n" +
 		"/lang — Язык: /lang en\n\n" +
 		"Просто текст — спрошу, задача это или заметка."
 	if !sameStrings(send.sent, []string{help, help}) {

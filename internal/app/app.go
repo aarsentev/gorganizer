@@ -32,6 +32,9 @@ type App struct {
 	log   *slog.Logger
 	loc   atomic.Pointer[time.Location]
 	lang  atomic.Pointer[string]
+
+	// What this binary is; set once by SetBuild before anything else runs.
+	version, built string
 }
 
 // New loads the zone and the language from state. On the very first run state is empty,

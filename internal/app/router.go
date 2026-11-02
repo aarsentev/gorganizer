@@ -28,6 +28,8 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 		a.handleTZ(ctx, now, m.ChatID, args)
 	case "/pause":
 		a.handlePause(ctx, now, m.ChatID, args)
+	case "/status":
+		a.handleStatus(ctx, now, m.ChatID)
 	case "/lang":
 		a.handleLang(ctx, m.ChatID, args)
 	case "/start", "/help":
