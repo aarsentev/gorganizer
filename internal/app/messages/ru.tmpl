@@ -102,6 +102,7 @@
 {{define "btn_ok"}}✓ Ок{{end}}
 {{define "btn_time"}}✎ Время{{end}}
 {{define "btn_cancel"}}✕ Отмена{{end}}
+{{define "btn_create"}}✓ Создать{{end}}
 {{define "btn_done"}}Сделано{{end}}
 {{define "btn_hour"}}Через час{{end}}
 {{define "btn_at"}}В {{clock .}}{{end}}
@@ -128,7 +129,11 @@
 {{- with .Location}}
 📍 {{.}}
 {{- end}}
-{{- if .RemindNow}}
+{{- if .Created}}
+✓ В календаре
+{{- else if .Failed}}
+⚠️ Не получилось записать в календарь — нажми «Создать» ещё раз
+{{- else if .RemindNow}}
 Напомню сразу
 {{- else if .Remind}}
 Напомню {{template "when" .Remind}}

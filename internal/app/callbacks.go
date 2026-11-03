@@ -28,7 +28,7 @@ func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback)
 	case "ask":
 		err = a.onAsk(ctx, now, cb, action)
 	case "evt":
-		err = a.onEvent(ctx, cb, id, action)
+		err = a.onEvent(ctx, now, cb, id, action)
 	default:
 		a.log.Warn("unknown callback", "data", cb.Data)
 		return

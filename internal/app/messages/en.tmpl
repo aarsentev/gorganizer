@@ -102,6 +102,7 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_ok"}}✓ OK{{end}}
 {{define "btn_time"}}✎ Time{{end}}
 {{define "btn_cancel"}}✕ Cancel{{end}}
+{{define "btn_create"}}✓ Create{{end}}
 {{define "btn_done"}}Done{{end}}
 {{define "btn_hour"}}In an hour{{end}}
 {{define "btn_at"}}At {{clock .}}{{end}}
@@ -128,7 +129,11 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{- with .Location}}
 📍 {{.}}
 {{- end}}
-{{- if .RemindNow}}
+{{- if .Created}}
+✓ In the calendar
+{{- else if .Failed}}
+⚠️ Could not write to the calendar, press Create again
+{{- else if .RemindNow}}
 Reminder right away
 {{- else if .Remind}}
 Reminder {{template "when" .Remind}}
