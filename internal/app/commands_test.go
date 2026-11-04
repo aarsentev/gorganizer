@@ -15,7 +15,8 @@ func TestHelpAndMenu(t *testing.T) {
 	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/start"})
 	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/help"})
 
-	help := "/add — Событие: /add 30.09 9:00-10:00 Приём\n" +
+	help := "/today — План на сегодня\n" +
+		"/add — Событие: /add 30.09 9:00-10:00 Приём\n" +
 		"/task — Задача: /task забрать запчасть вечером\n" +
 		"/note — Заметка: мысль, факт, ссылка\n" +
 		"/inbox — Ящик заметок\n" +
@@ -30,7 +31,7 @@ func TestHelpAndMenu(t *testing.T) {
 
 	a.PublishCommands(ctx)
 	if len(send.menus) != 1 || len(send.menus[0]) != len(menu) ||
-		send.menus[0][0] != (tg.Command{Name: "add", Description: "Событие: /add 30.09 9:00-10:00 Приём"}) {
+		send.menus[0][0] != (tg.Command{Name: "today", Description: "План на сегодня"}) {
 		t.Fatalf("menus = %v", send.menus)
 	}
 }
@@ -56,7 +57,7 @@ func TestLang(t *testing.T) {
 		t.Fatalf("Lang = %s", a.Lang())
 	}
 	// The menu follows the language, and only an actual switch republishes it.
-	if len(send.menus) != 1 || send.menus[0][0].Description != "Event: /add 30.09 9:00-10:00 Doctor" {
+	if len(send.menus) != 1 || send.menus[0][0].Description != "Today's plan" {
 		t.Fatalf("menus = %v", send.menus)
 	}
 }

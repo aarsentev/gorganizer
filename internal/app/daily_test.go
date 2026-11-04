@@ -10,6 +10,7 @@ import (
 
 	"go-organizer/internal/config"
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 func allDay(id, title string, y int, m time.Month, d int) store.Event {
@@ -199,5 +200,90 @@ func TestCleanupDeletesYesterdaysReminders(t *testing.T) {
 		if len(send.deleted) != len(want) || (cleanup && send.deleted[0] != 555) {
 			t.Errorf("cleanup=%v: deleted %v, want %v", cleanup, send.deleted, want)
 		}
+	}
+}
+
+// askToday sends /today at the given local time. The server's clock is UTC:
+// the day must come from the bot's zone.
+func askToday(t *testing.T, a *App, now string) {
+	t.Helper()
+	a.HandleText(context.Background(), at(t, now).UTC(), tg.Message{ChatID: 42, Text: "/today"})
+}
+
+func TestToday(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, withCalendar(), nil)
+	put(t, st,
+		store.Event{ID: "past", Title: "Seminar", Start: at(t, "2026-09-29 09:00")},
+		store.Event{ID: "coming", Title: "Doctor", Start: at(t, "2026-09-29 18:00")},
+		store.Event{ID: "flight", Title: "Flight", Start: at(t, "2026-09-30 10:00")},
+	)
+	for _, task := range []struct{ title, remind string }{
+		{"Overdue", "2026-09-28 18:00"},
+		{"Pick up the part", "2026-09-29 18:00"},
+		{"Next week", "2026-10-05 18:00"},
+	} {
+		if _, err := st.CreateTask(ctx, task.title, at(t, task.remind), at(t, "2026-09-28 12:00")); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	askToday(t, a, "2026-09-29 15:00")
+	askToday(t, a, "2026-09-30 00:30") // already the 30th in Warsaw, still the 29th in UTC
+
+	want := []string{
+		"☀️ Сегодня, вт, 29 сен — 2 события:\n• 09:00 Seminar\n• 18:00 Doctor\n\nЗадачи:\n☐ Overdue\n☐ Pick up the part",
+		"☀️ Сегодня, ср, 30 сен — 1 событие:\n• 10:00 Flight\n\nЗадачи:\n☐ Overdue\n☐ Pick up the part",
+	}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
+	}
+}
+
+func TestTodayWithoutCalendar(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	put(t, st, store.Event{ID: "stale", Title: "Stale", Start: at(t, "2026-09-29 10:00")})
+
+	askToday(t, a, "2026-09-29 15:00")
+	if _, err := st.CreateTask(ctx, "Pick up the part", at(t, "2026-09-29 18:00"), at(t, "2026-09-29 15:00")); err != nil {
+		t.Fatal(err)
+	}
+	askToday(t, a, "2026-09-29 15:01")
+
+	want := []string{
+		"☀️ Сегодня, вт, 29 сен, задач нет",
+		"☀️ Сегодня, вт, 29 сен\nЗадачи:\n☐ Pick up the part",
+	}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
+	}
+}
+
+// A pause and quiet hours silence what the bot starts itself, not an answer to a question.
+func TestTodayDuringPauseAndQuietHours(t *testing.T) {
+	a, send, st := newTestApp(t, withCalendar(), nil)
+	if err := st.SetPausedUntil(context.Background(), at(t, "2026-09-30 10:00")); err != nil {
+		t.Fatal(err)
+	}
+
+	askToday(t, a, "2026-09-29 03:00")
+
+	if !sameStrings(send.sent, []string{"☀️ Сегодня, вт, 29 сен, событий нет"}) {
+		t.Fatalf("sent %q", send.sent)
+	}
+}
+
+// /today is not the digest job: the evening message stays and the digest still comes.
+func TestTodayDoesNotReplaceDigest(t *testing.T) {
+	ctx := context.Background()
+	a, send, _ := newTestApp(t, withCalendar(), nil)
+
+	a.Tick(ctx, at(t, "2026-09-29 20:00"))
+	askToday(t, a, "2026-09-30 07:10")
+	a.Tick(ctx, at(t, "2026-09-30 07:30"))
+
+	if !sameStrings(send.ops, []string{"send:1", "send:2", "send:3", "delete:1"}) {
+		t.Fatalf("ops = %v", send.ops)
 	}
 }

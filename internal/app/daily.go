@@ -88,28 +88,38 @@ func (a *App) evening(ctx context.Context, local time.Time) ([]any, error) {
 	return []any{"events", len(events)}, a.store.SetEveningMessageID(ctx, id)
 }
 
-// digest sends today's events and open tasks, then removes the evening message
-// it replaces. Send first: if sending fails, last evening's message stays.
-func (a *App) digest(ctx context.Context, local time.Time) ([]any, error) {
-	today := midnight(local)
-	// Without a calendar the events are unknown, not absent: the digest shows tasks only.
-	var events []eventView
+// dayPlan is what the morning digest and /today show.
+type dayPlan struct {
+	Day        time.Time
+	Events     []eventView
+	Tasks      []store.Task
+	NoCalendar bool
+}
+
+func (a *App) dayPlan(ctx context.Context, today time.Time) (dayPlan, error) {
+	plan := dayPlan{Day: today, NoCalendar: a.cal == nil}
+	var err error
+	// Without a calendar the events are unknown, not absent: the plan shows tasks only.
 	if a.cal != nil {
-		var err error
-		if events, err = a.dayEvents(ctx, today); err != nil {
-			return nil, err
+		if plan.Events, err = a.dayEvents(ctx, today); err != nil {
+			return dayPlan{}, err
 		}
 	}
-	tasks, err := a.store.OpenTasksBefore(ctx, today.AddDate(0, 0, 1))
+	if plan.Tasks, err = a.store.OpenTasksBefore(ctx, today.AddDate(0, 0, 1)); err != nil {
+		return dayPlan{}, err
+	}
+	return plan, nil
+}
+
+// digest sends today's plan, then removes the evening message it replaces.
+// Send first: if sending fails, last evening's message stays.
+func (a *App) digest(ctx context.Context, local time.Time) ([]any, error) {
+	today := midnight(local)
+	plan, err := a.dayPlan(ctx, today)
 	if err != nil {
 		return nil, err
 	}
-	text, err := a.render("digest", struct {
-		Day        time.Time
-		Events     []eventView
-		Tasks      []store.Task
-		NoCalendar bool
-	}{today, events, tasks, a.cal == nil})
+	text, err := a.render("digest", plan)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +130,18 @@ func (a *App) digest(ctx context.Context, local time.Time) ([]any, error) {
 	if a.cfg.Reminders.Cleanup {
 		a.cleanupReminders(ctx, today)
 	}
-	return []any{"events", len(events), "tasks", len(tasks)}, nil
+	return []any{"events", len(plan.Events), "tasks", len(plan.Tasks)}, nil
+}
+
+// handleToday shows today's plan on request. It is not the digest job: the morning
+// digest still comes and the evening message stays.
+func (a *App) handleToday(ctx context.Context, now time.Time, chatID int64) {
+	plan, err := a.dayPlan(ctx, midnight(now.In(a.Loc())))
+	if err != nil {
+		a.log.Error("today", "err", err)
+		return
+	}
+	a.replyBlock(ctx, chatID, "digest", plan)
 }
 
 // dayEvents lists all-day events first, then timed ones by start, for a local day.
