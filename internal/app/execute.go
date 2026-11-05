@@ -60,10 +60,9 @@ func (a *App) eventKeyboard(id int64) [][]tg.Button {
 func (a *App) onEvent(ctx context.Context, now time.Time, cb tg.Callback, id int64, action string) error {
 	p, in, err := a.draft(ctx, id)
 	if errors.Is(err, store.ErrNotFound) {
-		// Already created or cancelled: the second tap of a double tap. Editing the card
-		// now would overwrite what the first tap wrote there.
-		a.log.Info("event card without a draft", "draft_id", id, "action", action)
-		return nil
+		// Replaced by a newer /add, or closed by the first tap of a double tap. Editing
+		// the card now would overwrite what that first tap wrote there.
+		return errStale
 	}
 	if err != nil {
 		return err

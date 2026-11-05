@@ -10,14 +10,19 @@ import (
 	"go-organizer/internal/tg"
 )
 
+// errStale: what the button refers to is gone. Not a failure: the message stays as it
+// is, and the user gets a notice instead of a button that does nothing.
+var errStale = errors.New("stale button")
+
 // HandleCallback is called by tg for every button press in the allowed chat.
 // Data is "<kind>:<id>:<action>": kind tells which message the button is under,
-// id is the task or the note the button refers to.
-func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback) {
+// id is the task or the note the button refers to. It returns a notice for
+// Telegram to show, "" for none.
+func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback) string {
 	kind, id, action, ok := parseData(cb.Data)
 	if !ok {
 		a.log.Warn("unknown callback", "data", cb.Data)
-		return
+		return ""
 	}
 	var err error
 	switch kind {
@@ -31,19 +36,23 @@ func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback)
 		err = a.onEvent(ctx, now, cb, id, action)
 	default:
 		a.log.Warn("unknown callback", "data", cb.Data)
-		return
+		return ""
+	}
+	if errors.Is(err, errStale) {
+		a.log.Info("stale button", "data", cb.Data)
+		return a.label("stale_button", nil)
 	}
 	if err != nil {
 		a.log.Error("callback", "data", cb.Data, "err", err)
 	}
+	return ""
 }
 
 // onTask loads the task a button refers to and passes it to the handler of that message.
 func (a *App) onTask(ctx context.Context, now time.Time, cb tg.Callback, kind string, id int64, action string) error {
 	t, err := a.store.Task(ctx, id)
 	if errors.Is(err, store.ErrNotFound) {
-		a.log.Warn("callback for a missing task", "task_id", id)
-		return nil
+		return errStale
 	}
 	if err != nil {
 		return err

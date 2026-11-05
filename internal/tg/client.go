@@ -42,8 +42,9 @@ type Command struct {
 }
 
 type Handlers struct {
-	Text     func(ctx context.Context, m Message)
-	Callback func(ctx context.Context, cb Callback)
+	Text func(ctx context.Context, m Message)
+	// Callback returns a short notice Telegram shows over the chat, "" for none.
+	Callback func(ctx context.Context, cb Callback) string
 }
 
 type Client struct {
@@ -171,14 +172,19 @@ func (c *Client) onCallback(ctx context.Context, q *models.CallbackQuery) {
 		c.log.Warn("Button press from unknown user", "user_id", q.From.ID, "username", q.From.Username)
 		return
 	}
-	// Answer right away so Telegram stops the spinner on the button.
-	if _, err := c.bot.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{CallbackQueryID: q.ID}); err != nil {
+	// A press is answered once, so only after the handler, which may have a notice to
+	// show. The answer stops the spinner on the button, so it goes out on every path.
+	notice := c.handleCallback(ctx, q)
+	if _, err := c.bot.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{CallbackQueryID: q.ID, Text: notice}); err != nil {
 		c.log.Warn("answer callback", "err", err)
 	}
+}
 
+// handleCallback passes the press to the app and returns its notice.
+func (c *Client) handleCallback(ctx context.Context, q *models.CallbackQuery) string {
 	m := q.Message.Message
 	if m == nil || c.handlers.Callback == nil {
-		return // the message was deleted or is no longer accessible to the bot
+		return "" // the message was deleted or is no longer accessible to the bot
 	}
 	cb := Callback{ChatID: m.Chat.ID, MessageID: int64(m.ID), Data: q.Data}
 	if m.ReplyToMessage != nil {
@@ -193,7 +199,7 @@ func (c *Client) onCallback(ctx context.Context, q *models.CallbackQuery) {
 			cb.Keyboard = append(cb.Keyboard, out)
 		}
 	}
-	c.handlers.Callback(ctx, cb)
+	return c.handlers.Callback(ctx, cb)
 }
 
 func markup(keyboard [][]Button) *models.InlineKeyboardMarkup {

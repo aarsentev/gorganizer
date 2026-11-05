@@ -93,8 +93,8 @@ func run() error {
 			Text: func(ctx context.Context, m tg.Message) {
 				a.HandleText(ctx, time.Now(), m)
 			},
-			Callback: func(ctx context.Context, cb tg.Callback) {
-				a.HandleCallback(ctx, time.Now(), cb)
+			Callback: func(ctx context.Context, cb tg.Callback) string {
+				return a.HandleCallback(ctx, time.Now(), cb)
 			},
 		})
 	})

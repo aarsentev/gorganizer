@@ -174,7 +174,10 @@ func TestCallback(t *testing.T) {
 	var bodies []map[string]any
 	c := fakeTelegram(t, &calls, &bodies)
 	var got []Callback
-	c.handlers = Handlers{Callback: func(_ context.Context, cb Callback) { got = append(got, cb) }}
+	c.handlers = Handlers{Callback: func(_ context.Context, cb Callback) string {
+		got = append(got, cb)
+		return ""
+	}}
 
 	press := func(userID int64) {
 		c.onUpdate(context.Background(), nil, &models.Update{CallbackQuery: &models.CallbackQuery{
@@ -208,5 +211,37 @@ func TestCallback(t *testing.T) {
 	}
 	if len(calls) != 1 || calls[0] != "answerCallbackQuery" || bodies[0]["callback_query_id"] != "q1" {
 		t.Fatalf("calls = %v %v, want the press answered", calls, bodies)
+	}
+}
+
+func TestCallbackAnswer(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+	answeredFirst := false
+	c.handlers = Handlers{Callback: func(context.Context, Callback) string {
+		answeredFirst = len(calls) != 0
+		return "No longer relevant"
+	}}
+	press := func(message *models.Message) {
+		c.onUpdate(context.Background(), nil, &models.Update{CallbackQuery: &models.CallbackQuery{
+			ID:      "q1",
+			From:    models.User{ID: 42},
+			Message: models.MaybeInaccessibleMessage{Message: message},
+		}})
+	}
+
+	press(&models.Message{ID: 777, Chat: models.Chat{ID: 42}})
+	if answeredFirst {
+		t.Fatal("the press was answered before the handler")
+	}
+	if len(calls) != 1 || bodies[0]["text"] != "No longer relevant" {
+		t.Fatalf("calls = %v %v, want the notice in the answer", calls, bodies)
+	}
+
+	// A deleted message never reaches the handler, but the spinner must still stop.
+	press(nil)
+	if len(calls) != 2 || calls[1] != "answerCallbackQuery" || bodies[1]["text"] != nil {
+		t.Fatalf("calls = %v %v, want an answer without a notice", calls, bodies)
 	}
 }
