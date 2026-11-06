@@ -14,6 +14,7 @@ const (
 	keyTZ               = "tz"
 	keyLang             = "lang"
 	keySyncToken        = "sync_token"
+	keyCalendarTZ       = "calendar_tz"
 	keyEveningMessageID = "evening_message_id"
 	keyPausedUntil      = "paused_until"
 	keyLastBuild        = "last_build"
@@ -79,6 +80,16 @@ func (s *Store) SetSyncToken(ctx context.Context, token string) error {
 		return s.del(ctx, keySyncToken)
 	}
 	return s.set(ctx, keySyncToken, token)
+}
+
+// CalendarTZ returns the calendar's zone as of the last sync, or "" before the first one.
+// It is kept apart from TZ: comparing with it tells whether the calendar changed its zone.
+func (s *Store) CalendarTZ(ctx context.Context) (string, error) {
+	return s.get(ctx, keyCalendarTZ)
+}
+
+func (s *Store) SetCalendarTZ(ctx context.Context, name string) error {
+	return s.set(ctx, keyCalendarTZ, name)
 }
 
 // EveningMessageID returns the id of the last evening message to delete in the morning, or 0.

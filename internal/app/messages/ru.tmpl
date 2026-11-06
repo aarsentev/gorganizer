@@ -4,6 +4,7 @@
 {{define "tz_current"}}{{template "tz" .}}
 Сменить: /tz toronto или /tz America/Toronto{{end}}
 {{define "tz_unknown"}}Не нашёл зону «{{.}}». Пример: /tz toronto или /tz America/Toronto{{end}}
+{{define "tz_from_calendar"}}Часовой пояс взят из Google Календаря: {{template "tz" .}}{{end}}
 
 {{define "lang"}}Язык: {{.Lang}}. Доступно: {{template "lang_list" .Available}}{{end}}
 {{define "lang_unknown"}}Нет языка «{{.Lang}}». Доступно: {{template "lang_list" .Available}}{{end}}

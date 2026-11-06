@@ -4,6 +4,7 @@
 {{define "tz_current"}}{{template "tz" .}}
 Change it: /tz toronto or /tz America/Toronto{{end}}
 {{define "tz_unknown"}}No zone "{{.}}". Example: /tz toronto or /tz America/Toronto{{end}}
+{{define "tz_from_calendar"}}Time zone taken from Google Calendar: {{template "tz" .}}{{end}}
 
 {{define "lang"}}Language: {{.Lang}}. Available: {{template "lang_list" .Available}}{{end}}
 {{define "lang_unknown"}}No language "{{.Lang}}". Available: {{template "lang_list" .Available}}{{end}}

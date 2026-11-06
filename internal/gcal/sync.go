@@ -32,6 +32,7 @@ type Changes struct {
 	Events    []Event
 	SyncToken string   // pass to the next Changes call
 	Skipped   []string // ids of events that could not be parsed
+	Zone      string   // the calendar's IANA zone, "" if Google left it out
 }
 
 // fullSyncLookback limits a full sync: older events are useless for reminders
@@ -80,6 +81,8 @@ func (c *Client) Changes(ctx context.Context, syncToken string, now time.Time) (
 
 		if resp.NextPageToken == "" {
 			out.SyncToken = resp.NextSyncToken
+			// Every list answer carries the calendar's zone: following it costs no extra request.
+			out.Zone = resp.TimeZone
 			return out, nil
 		}
 		pageToken = resp.NextPageToken

@@ -106,6 +106,19 @@ func TestStateAccessors(t *testing.T) {
 		t.Fatalf("SyncToken after reset = %q", token)
 	}
 
+	if zone, _ := s.CalendarTZ(ctx); zone != "" {
+		t.Fatalf("initial CalendarTZ = %q", zone)
+	}
+	if err := s.SetCalendarTZ(ctx, "Asia/Singapore"); err != nil {
+		t.Fatal(err)
+	}
+	if zone, _ := s.CalendarTZ(ctx); zone != "Asia/Singapore" {
+		t.Fatalf("CalendarTZ = %q, want Asia/Singapore", zone)
+	}
+	if tz, _ := s.TZ(ctx); tz != "" {
+		t.Fatalf("SetCalendarTZ changed TZ to %q", tz)
+	}
+
 	if err := s.SetLang(ctx, "ru"); err != nil {
 		t.Fatal(err)
 	}

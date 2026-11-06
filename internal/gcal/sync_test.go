@@ -172,14 +172,14 @@ func TestChangesIncremental(t *testing.T) {
 	var query map[string][]string
 	c := fakeCalendar(t, func(w http.ResponseWriter, r *http.Request) {
 		query = r.URL.Query()
-		writeJSON(t, w, calendar.Events{NextSyncToken: "token-2"})
+		writeJSON(t, w, calendar.Events{NextSyncToken: "token-2", TimeZone: "Asia/Singapore"})
 	})
 
 	got, err := c.Changes(context.Background(), "token-1", time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.SyncToken != "token-2" || len(got.Events) != 0 {
+	if got.SyncToken != "token-2" || got.Zone != "Asia/Singapore" || len(got.Events) != 0 {
 		t.Fatalf("got %+v", got)
 	}
 	if query["syncToken"][0] != "token-1" || len(query["timeMin"]) != 0 {

@@ -71,5 +71,27 @@ func (a *App) sync(ctx context.Context, now time.Time) error {
 	if full || len(events) > 0 {
 		a.log.Info("synced", "full", full, "events", len(events))
 	}
-	return nil
+	return a.followCalendarZone(ctx, now, changes.Zone)
+}
+
+// followCalendarZone switches the bot to the calendar's zone when that zone differs from
+// the one seen at the last sync. /tz is not undone: the last change wins, whichever side
+// made it. On the first sync nothing is seen yet, so a new install takes the calendar's zone.
+func (a *App) followCalendarZone(ctx context.Context, now time.Time, zone string) error {
+	if zone == "" {
+		return nil
+	}
+	seen, err := a.store.CalendarTZ(ctx)
+	if err != nil || zone == seen {
+		return err
+	}
+	if zone != a.Loc().String() {
+		if err := a.SetTZ(ctx, zone); err != nil {
+			return err
+		}
+		a.log.Info("zone from calendar", "zone", zone)
+		a.replyBlock(ctx, a.cfg.ChatID, "tz_from_calendar", tzView{Zone: zone, Now: now.In(a.Loc())})
+	}
+	// Saved after the switch: a crash in between switches again on the next sync, not never.
+	return a.store.SetCalendarTZ(ctx, zone)
 }

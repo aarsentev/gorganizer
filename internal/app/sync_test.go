@@ -8,6 +8,7 @@ import (
 
 	"go-organizer/internal/gcal"
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 type calendarReply struct {
@@ -135,6 +136,60 @@ func TestSyncTokenExpiredReplacesCache(t *testing.T) {
 	}
 	if syncToken(t, st) != "t9" {
 		t.Fatalf("token = %q, want t9", syncToken(t, st))
+	}
+}
+
+func TestSyncTakesCalendarZone(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 9, 29, 7, 5, 0, 0, time.UTC)
+	cal := &fakeCalendar{replies: []calendarReply{
+		{changes: gcal.Changes{SyncToken: "t1", Zone: "Asia/Singapore"}},
+		{changes: gcal.Changes{SyncToken: "t2", Zone: "Asia/Singapore"}},
+	}}
+	a, send, _ := newTestApp(t, cal, nil)
+
+	// A new install starts in the zone from config and takes the calendar's on the first sync.
+	a.Sync(ctx, now)
+	a.Sync(ctx, now.Add(5*time.Minute))
+
+	if got := a.Loc().String(); got != "Asia/Singapore" {
+		t.Fatalf("Loc = %s, want the calendar's zone", got)
+	}
+	want := []string{"Часовой пояс взят из Google Календаря: Asia/Singapore (GMT+8), сейчас 15:05"}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent %q, want %q", send.sent, want)
+	}
+}
+
+func TestSyncLastZoneChangeWins(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 9, 29, 7, 5, 0, 0, time.UTC)
+	cal := &fakeCalendar{replies: []calendarReply{
+		{changes: gcal.Changes{SyncToken: "t1", Zone: "Europe/Warsaw"}},
+		{changes: gcal.Changes{SyncToken: "t2", Zone: "Europe/Warsaw"}},
+		{changes: gcal.Changes{SyncToken: "t3"}},
+		{changes: gcal.Changes{SyncToken: "t4", Zone: "Asia/Singapore"}},
+	}}
+	a, send, _ := newTestApp(t, cal, nil)
+
+	a.Sync(ctx, now) // the same zone as the bot: nothing to say
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/tz toronto"})
+	a.Sync(ctx, now) // the calendar has not changed: /tz stays
+	if got := a.Loc().String(); got != "America/Toronto" {
+		t.Fatalf("Loc = %s, the sync undid /tz", got)
+	}
+	a.Sync(ctx, now) // no zone in the answer: nothing changes
+	a.Sync(ctx, now) // the zone was changed in Google: the bot follows
+
+	if got := a.Loc().String(); got != "Asia/Singapore" {
+		t.Fatalf("Loc = %s, want the calendar's new zone", got)
+	}
+	want := []string{
+		"America/Toronto (GMT-4), сейчас 03:05",
+		"Часовой пояс взят из Google Календаря: Asia/Singapore (GMT+8), сейчас 15:05",
+	}
+	if !sameStrings(send.sent, want) {
+		t.Fatalf("sent %q, want %q", send.sent, want)
 	}
 }
 
