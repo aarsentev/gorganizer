@@ -140,6 +140,8 @@ func renderSamples() map[string]struct {
 		"help":                      {"help", []tg.Command{{Name: "task", Description: "Task"}, {Name: "tz", Description: "Zone"}}},
 		"event card":                {"event_card", eventCard{Title: "Doctor", Start: at(9, 0), End: at(10, 0), SameDay: true, Zone: "Europe/Warsaw", Location: "Clinic", Remind: &whenView{T: at(8, 0), Today: true}}},
 		"event created":             {"event_card", eventCard{Title: "Doctor", Start: at(9, 0), End: at(10, 0), SameDay: true, Zone: "Europe/Warsaw", Created: true}},
+		"end question":              {"ask_end", question{Title: "Doctor", Start: at(9, 0)}},
+		"end button":                {"btn_end", at(9, 30)},
 		"status":                    {"status", statusView{Version: "a3ae58f", Built: at(9, 0), TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}, Paused: at(18, 0)}},
 		"status, no pause":          {"status", statusView{Version: "dev", TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}}},
 	}
@@ -201,6 +203,8 @@ func TestRenderRu(t *testing.T) {
 		"help":                      "/task — Task\n/tz — Zone\n\nПросто текст — спрошу, задача это или заметка.",
 		"event card":                "📅 Doctor\nвт, 29 сен, 09:00–10:00 (Europe/Warsaw)\n📍 Clinic\nНапомню сегодня в 08:00",
 		"event created":             "📅 Doctor\nвт, 29 сен, 09:00–10:00 (Europe/Warsaw)\n✓ В календаре",
+		"end question":              "Doctor — вт, 29 сен, 09:00\nДо скольки?",
+		"end button":                "09:30",
 		"status":                    "Версия a3ae58f, собрана вт, 29 сен, 09:00\nEurope/Warsaw (GMT+2), сейчас 09:05\n⏸ Пауза до вт, 29 сен, 18:00",
 		"status, no pause":          "Версия dev\nEurope/Warsaw (GMT+2), сейчас 09:05\nПаузы нет",
 	})
@@ -237,6 +241,8 @@ func TestRenderEn(t *testing.T) {
 		"help":                      "/task — Task\n/tz — Zone\n\nPlain text: I'll ask whether it's a task or a note.",
 		"event card":                "📅 Doctor\nTue, Sep 29, 09:00–10:00 (Europe/Warsaw)\n📍 Clinic\nReminder today at 08:00",
 		"event created":             "📅 Doctor\nTue, Sep 29, 09:00–10:00 (Europe/Warsaw)\n✓ In the calendar",
+		"end question":              "Doctor — Tue, Sep 29, 09:00\nUntil when?",
+		"end button":                "09:30",
 		"status":                    "Version a3ae58f, built Tue, Sep 29, 09:00\nEurope/Warsaw (GMT+2), now 09:05\n⏸ Paused until Tue, Sep 29, 18:00",
 		"status, no pause":          "Version dev\nEurope/Warsaw (GMT+2), now 09:05\nNot paused",
 	})

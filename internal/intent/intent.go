@@ -16,3 +16,18 @@ type Intent struct {
 	DurationMin int        `json:"duration_min,omitempty"`
 	Location    string     `json:"location,omitempty"`
 }
+
+// What a question can be about. Missing returns one, and the draft keeps it as asking,
+// so that the answer is read as that field.
+const (
+	AskEnd = "end" // the end of an event: "until when?"
+)
+
+// Missing is the first field the user still has to be asked about, "" when nothing is.
+// Code decides it, not the parser: the model leaves out what it did not hear (SPEC §7).
+func (in Intent) Missing() string {
+	if in.Kind == "event" && in.Start != nil && in.DurationMin == 0 {
+		return AskEnd
+	}
+	return ""
+}

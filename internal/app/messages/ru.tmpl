@@ -145,7 +145,10 @@
 
 {{define "add_usage"}}Пример: /add 30.09 9:00-10:00 Приём у врача @ клиника
 Дата — числом, время — начало и конец, место — после @.{{end}}
-{{define "add_incomplete"}}Пока нужно указать всё — дату, начало и конец: /add 30.09 9:00-10:00 Приём у врача{{end}}
+{{define "add_incomplete"}}Пока нужно указать время начала: /add 30.09 9:00 Приём у врача{{end}}
+{{define "ask_end"}}{{.Title}} — {{date .Start}}, {{clock .Start}}
+До скольки?{{end}}
+{{define "btn_end"}}{{clock .}}{{end}}
 {{define "add_past"}}Это время уже прошло: {{date .}}, {{clock .}}{{end}}
 {{define "add_no_calendar"}}Календарь не подключён{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — отменено{{end}}

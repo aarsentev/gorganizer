@@ -22,6 +22,15 @@ func (a *App) newDraft(ctx context.Context, chatID int64, in intent.Intent, aski
 	return a.store.CreatePending(ctx, chatID, raw, asking, now)
 }
 
+// updateDraft stores the draft after an answer, with the field the next question is about.
+func (a *App) updateDraft(ctx context.Context, id int64, in intent.Intent, asking string, now time.Time) error {
+	raw, err := json.Marshal(in)
+	if err != nil {
+		return fmt.Errorf("encode draft: %w", err)
+	}
+	return a.store.UpdatePending(ctx, id, raw, asking, now)
+}
+
 // draft loads the draft a button refers to; store.ErrNotFound when it is gone.
 func (a *App) draft(ctx context.Context, id int64) (store.Pending, intent.Intent, error) {
 	p, err := a.store.Pending(ctx, id)

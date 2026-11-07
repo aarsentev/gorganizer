@@ -11,8 +11,8 @@ import (
 	"go-organizer/internal/intent"
 )
 
-// handleAdd turns a fully said /add into a draft and shows its card. Until the
-// questions come (stage 4b), anything missing is answered with an example.
+// handleAdd turns /add into a draft and shows its card, or asks about what is missing.
+// Until the other questions come (stage 4b), no start is answered with an example.
 func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args string) {
 	if a.cal == nil {
 		a.replyBlock(ctx, chatID, "add_no_calendar", nil)
@@ -24,7 +24,7 @@ func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args s
 		return
 	}
 	start, _ := a.moment(s, now)
-	if start == nil || s.duration == 0 {
+	if start == nil {
 		a.replyBlock(ctx, chatID, "add_incomplete", nil)
 		return
 	}
@@ -35,18 +35,18 @@ func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args s
 	in := intent.Intent{
 		Action: "create", Kind: "event", Title: title, Start: start, DurationMin: s.duration, Location: location,
 	}
-	id, err := a.newDraft(ctx, chatID, in, "", now)
+	id, err := a.newDraft(ctx, chatID, in, in.Missing(), now)
 	if err != nil {
 		a.log.Error("add", "err", err)
 		return
 	}
-	text, err := a.render("event_card", a.eventCard(in, now))
+	text, keyboard, err := a.draftMessage(in, id, now)
 	if err != nil {
 		a.log.Error("render", "err", err)
 		return
 	}
-	if _, err := a.send.SendButtons(ctx, chatID, text, a.eventKeyboard(id)); err != nil {
-		a.log.Error("send event card", "err", err)
+	if _, err := a.send.SendButtons(ctx, chatID, text, keyboard); err != nil {
+		a.log.Error("send draft", "err", err)
 	}
 }
 

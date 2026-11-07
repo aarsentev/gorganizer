@@ -145,7 +145,10 @@ Reminder {{template "when" .Remind}}
 
 {{define "add_usage"}}Example: /add 30.09 9:00-10:00 Doctor @ clinic
 The date in numbers, the time as start and end, the place after @.{{end}}
-{{define "add_incomplete"}}For now say it all, the date, start and end: /add 30.09 9:00-10:00 Doctor{{end}}
+{{define "add_incomplete"}}For now say the start time: /add 30.09 9:00 Doctor{{end}}
+{{define "ask_end"}}{{.Title}} — {{date .Start}}, {{clock .Start}}
+Until when?{{end}}
+{{define "btn_end"}}{{clock .}}{{end}}
 {{define "add_past"}}That time has passed: {{date .}}, {{clock .}}{{end}}
 {{define "add_no_calendar"}}No calendar connected{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — cancelled{{end}}

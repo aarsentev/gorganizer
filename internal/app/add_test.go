@@ -132,12 +132,14 @@ func TestAddRefusals(t *testing.T) {
 	a, send, st := newTestApp(t, withCalendar(), nil)
 	now := at(t, "2026-09-29 10:00")
 
-	for _, args := range []string{"", "Приём у врача", "30.09 Приём", "9:00 Приём", "29.09 8:00-9:00 Приём", "31.02 9:00-10:00 Приём"} {
+	for _, args := range []string{"", "Приём у врача", "30.09 Приём", "29.09 8:00-9:00 Приём", "29.09 8:00 Приём", "31.02 9:00-10:00 Приём"} {
 		a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/add " + args})
 	}
 	usage := "Пример: /add 30.09 9:00-10:00 Приём у врача @ клиника\nДата — числом, время — начало и конец, место — после @."
-	incomplete := "Пока нужно указать всё — дату, начало и конец: /add 30.09 9:00-10:00 Приём у врача"
-	want := []string{usage, incomplete, incomplete, incomplete, "Это время уже прошло: вт, 29 сен, 08:00", usage}
+	incomplete := "Пока нужно указать время начала: /add 30.09 9:00 Приём у врача"
+	past := "Это время уже прошло: вт, 29 сен, 08:00"
+	// A start in the past is refused before any question about the end.
+	want := []string{usage, incomplete, incomplete, past, past, usage}
 	if !sameStrings(send.sent, want) {
 		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
 	}

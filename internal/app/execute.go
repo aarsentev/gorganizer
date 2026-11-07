@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"go-organizer/internal/gcal"
@@ -56,7 +57,7 @@ func (a *App) eventKeyboard(id int64) [][]tg.Button {
 	}}
 }
 
-// onEvent handles the buttons under the event card; id is the draft's.
+// onEvent handles the buttons under the event card and its questions; id is the draft's.
 func (a *App) onEvent(ctx context.Context, now time.Time, cb tg.Callback, id int64, action string) error {
 	p, in, err := a.draft(ctx, id)
 	if errors.Is(err, store.ErrNotFound) {
@@ -66,6 +67,9 @@ func (a *App) onEvent(ctx context.Context, now time.Time, cb tg.Callback, id int
 	}
 	if err != nil {
 		return err
+	}
+	if minutes, ok := strings.CutPrefix(action, "dur"); ok {
+		return a.onEnd(ctx, now, cb, p, in, minutes)
 	}
 	switch action {
 	case "cancel":

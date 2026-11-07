@@ -6,6 +6,23 @@ import (
 	"time"
 )
 
+func TestMissing(t *testing.T) {
+	start := time.Date(2026, 9, 29, 7, 0, 0, 0, time.UTC)
+	cases := map[string]struct {
+		in   Intent
+		want string
+	}{
+		"event without an end": {Intent{Kind: "event", Title: "Doctor", Start: &start}, AskEnd},
+		"complete event":       {Intent{Kind: "event", Title: "Doctor", Start: &start, DurationMin: 60}, ""},
+		"task has no end":      {Intent{Kind: "task", Title: "Call mom", Start: &start}, ""},
+	}
+	for name, c := range cases {
+		if got := c.in.Missing(); got != c.want {
+			t.Errorf("%s: Missing() = %q, want %q", name, got, c.want)
+		}
+	}
+}
+
 // The JSON names are the contract with stored drafts and, at stage 5, with the model:
 // renaming a Go field must not change them.
 func TestJSONForm(t *testing.T) {
