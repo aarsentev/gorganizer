@@ -110,6 +110,7 @@ func (s *Store) apply(ctx context.Context, version int, body string) error {
 
 // TryFire records that a daily job ran on the given local day.
 // It returns true only for the first call per (job, day).
+// The app also marks answered questions with it: day holds the question's message id then.
 func (s *Store) TryFire(ctx context.Context, job, day string, now time.Time) (bool, error) {
 	res, err := s.db.ExecContext(ctx,
 		"INSERT OR IGNORE INTO jobs_fired (job, day, fired_utc) VALUES (?, ?, ?)",

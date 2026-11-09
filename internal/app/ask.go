@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,12 +30,26 @@ func (a *App) askKind(ctx context.Context, m tg.Message) {
 	}
 }
 
+// askJob marks answered questions in jobs_fired. Its day column holds the question's
+// message id there: the table is the store's only once-per-key mark.
+const askJob = "ask"
+
 // onAsk turns the question into a task card or a saved note, in the same message.
 func (a *App) onAsk(ctx context.Context, now time.Time, cb tg.Callback, action string) error {
 	text := strings.TrimSpace(cb.ReplyText)
 	if text == "" {
 		// The user deleted the message before answering: there is nothing to save.
 		return a.editBlock(ctx, cb, "ask_lost", nil, nil)
+	}
+	// Nothing is stored while the question waits, so the second press of a double tap
+	// brings the same text again and would save it twice. Only the first one passes.
+	key := strconv.FormatInt(cb.MessageID, 10)
+	first, err := a.store.TryFire(ctx, askJob, key, now)
+	if err != nil {
+		return err
+	}
+	if !first {
+		return errStale
 	}
 	switch action {
 	case "task":
@@ -43,14 +58,22 @@ func (a *App) onAsk(ctx context.Context, now time.Time, cb tg.Callback, action s
 			return a.editBlock(ctx, cb, "task_usage", nil, nil)
 		}
 		if err != nil {
-			return err
+			return a.reopenAsk(ctx, key, err)
 		}
 		return a.send.Edit(ctx, cb.ChatID, cb.MessageID, card, keyboard)
 	case "note":
 		if _, err := a.store.CreateNote(ctx, text, now); err != nil {
-			return err
+			return a.reopenAsk(ctx, key, err)
 		}
 		return a.editBlock(ctx, cb, "note_saved", nil, nil)
 	}
 	return errors.New("unknown ask action " + action)
+}
+
+// reopenAsk lifts the mark after saving failed, so that pressing again retries.
+func (a *App) reopenAsk(ctx context.Context, key string, cause error) error {
+	if err := a.store.Unfire(ctx, askJob, key); err != nil {
+		a.log.Error("reopen ask", "err", err)
+	}
+	return cause
 }

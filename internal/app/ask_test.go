@@ -53,6 +53,42 @@ func TestPlainTextBecomesNote(t *testing.T) {
 	}
 }
 
+func TestAskDoubleTapSavesOnce(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	now := at(t, "2026-09-29 10:00")
+	answer := func(questionID int64, data string) string {
+		return a.HandleCallback(ctx, now, tg.Callback{ChatID: 42, MessageID: questionID, Data: data, ReplyText: "размер шин 205/55 R16"})
+	}
+
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, ID: 11, Text: "размер шин 205/55 R16"})
+	answer(1, "ask:11:note")
+	edits := len(send.edits)
+
+	// Both presses were queued before the first edit removed the buttons: the second
+	// one still carries the text, and the other button of the pair is no better.
+	for _, data := range []string{"ask:11:note", "ask:11:task"} {
+		if got := answer(1, data); got != "Уже неактуально" {
+			t.Errorf("%s: notice = %q", data, got)
+		}
+	}
+	if len(send.edits) != edits {
+		t.Fatalf("a second press edited the message")
+	}
+	if ids, _ := st.OpenNoteIDs(ctx); len(ids) != 1 {
+		t.Fatalf("open notes = %v, want one", ids)
+	}
+	if _, err := st.Task(ctx, 1); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("task 1: %v, want none", err)
+	}
+
+	// Another question is answered as usual.
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, ID: 12, Text: "размер шин 205/55 R16"})
+	if got := answer(2, "ask:12:note"); got != "" {
+		t.Fatalf("a fresh question: notice = %q", got)
+	}
+}
+
 func TestAskEdgeCases(t *testing.T) {
 	ctx := context.Background()
 	a, send, st := newTestApp(t, nil, nil)
