@@ -43,7 +43,9 @@ func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback)
 		return a.label("stale_button", nil)
 	}
 	if err != nil {
+		// Without a notice the button would just do nothing, as if never pressed.
 		a.log.Error("callback", "data", cb.Data, "err", err)
+		return a.label("press_failed", nil)
 	}
 	return ""
 }

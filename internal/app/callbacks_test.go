@@ -7,6 +7,28 @@ import (
 	"go-organizer/internal/tg"
 )
 
+func TestFailedPressGetsNotice(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	now := at(t, "2026-09-29 10:00")
+	answer := func() string {
+		return a.HandleCallback(ctx, now, tg.Callback{ChatID: 42, MessageID: 1, Data: "ask:10:note", ReplyText: "размер шин"})
+	}
+
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, ID: 10, Text: "размер шин"})
+	send.failEdits = 1
+	if got := answer(); got != "Не получилось, попробуй ещё раз" {
+		t.Fatalf("notice = %q", got)
+	}
+	// The note was saved before the edit failed: pressing again does not save it twice.
+	if got := answer(); got != "Уже неактуально" {
+		t.Fatalf("second press: notice = %q", got)
+	}
+	if ids, _ := st.OpenNoteIDs(ctx); len(ids) != 1 {
+		t.Fatalf("open notes = %v, want one", ids)
+	}
+}
+
 func TestStaleButtonGetsNotice(t *testing.T) {
 	ctx := context.Background()
 	a, send, _ := newTestApp(t, withCalendar(), nil)

@@ -23,6 +23,7 @@ type fakeSender struct {
 	deleted   []int64
 	ops       []string // "send:<id>", "edit:<id>" and "delete:<id>"
 	failSends int      // the next N sends fail, as if Telegram were down
+	failEdits int      // the next N edits fail
 	menus     [][]tg.Command
 }
 
@@ -59,6 +60,10 @@ func (f *fakeSender) Reply(_ context.Context, _, replyTo int64, text string, key
 }
 
 func (f *fakeSender) Edit(_ context.Context, _, messageID int64, text string, keyboard [][]tg.Button) error {
+	if f.failEdits > 0 {
+		f.failEdits--
+		return errors.New("telegram is down")
+	}
 	f.edits = append(f.edits, edit{messageID, text, keyboard})
 	f.ops = append(f.ops, fmt.Sprintf("edit:%d", messageID))
 	return nil

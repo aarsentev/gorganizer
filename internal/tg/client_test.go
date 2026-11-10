@@ -54,8 +54,17 @@ func fakeTelegram(t *testing.T, calls *[]string, bodies *[]map[string]any) *Clie
 		switch method {
 		case "sendMessage":
 			w.Write([]byte(`{"ok":true,"result":{"message_id":777,"date":0,"chat":{"id":42,"type":"private"}}}`))
-		case "answerCallbackQuery", "editMessageText", "setMyCommands":
+		case "answerCallbackQuery", "setMyCommands":
 			w.Write([]byte(`{"ok":true,"result":true}`))
+		case "editMessageText":
+			switch body["message_id"] {
+			case "304":
+				w.Write([]byte(`{"ok":false,"error_code":400,"description":"Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message"}`))
+			case "404":
+				w.Write([]byte(`{"ok":false,"error_code":400,"description":"Bad Request: message to edit not found"}`))
+			default:
+				w.Write([]byte(`{"ok":true,"result":true}`))
+			}
 		case "deleteMessage":
 			if body["message_id"] == "404" {
 				w.Write([]byte(`{"ok":false,"error_code":400,"description":"Bad Request: message to delete not found"}`))
@@ -137,6 +146,21 @@ func TestSendButtonsAndEdit(t *testing.T) {
 	}
 	if _, ok := bodies[0]["reply_parameters"]; ok {
 		t.Fatalf("plain send is a reply: %v", bodies[0]["reply_parameters"])
+	}
+}
+
+func TestEditThatChangesNothing(t *testing.T) {
+	var calls []string
+	var bodies []map[string]any
+	c := fakeTelegram(t, &calls, &bodies)
+	ctx := context.Background()
+
+	if err := c.Edit(ctx, 42, 304, "Same text", nil); err != nil {
+		t.Fatalf("an edit that changes nothing: %v, want success", err)
+	}
+	// Other refusals are still errors.
+	if err := c.Edit(ctx, 42, 404, "Gone", nil); err == nil {
+		t.Fatal("editing a missing message must return an error")
 	}
 }
 

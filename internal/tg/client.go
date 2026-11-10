@@ -2,8 +2,10 @@ package tg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -115,6 +117,11 @@ func (c *Client) Edit(ctx context.Context, chatID, messageID int64, text string,
 		p.ReplyMarkup = markup(keyboard)
 	}
 	if _, err := c.bot.EditMessageText(ctx, p); err != nil {
+		// Telegram refuses an edit that changes nothing, yet the message already shows
+		// what the caller asked for: that is not a failure to report.
+		if errors.Is(err, bot.ErrorBadRequest) && strings.Contains(err.Error(), "message is not modified") {
+			return nil
+		}
 		return fmt.Errorf("edit %d in %d: %w", messageID, chatID, err)
 	}
 	return nil
