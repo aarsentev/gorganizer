@@ -65,6 +65,7 @@ func TestExpirePending(t *testing.T) {
 	now := time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)
 	stale, _ := s.CreatePending(ctx, 1, []byte(`{}`), "start", now.Add(-11*time.Minute))
 	fresh, _ := s.CreatePending(ctx, 2, []byte(`{}`), "start", now.Add(-9*time.Minute))
+	card, _ := s.CreatePending(ctx, 3, []byte(`{}`), "", now.Add(-time.Hour))
 
 	n, err := s.ExpirePending(ctx, now.Add(-10*time.Minute))
 	if err != nil || n != 1 {
@@ -75,5 +76,8 @@ func TestExpirePending(t *testing.T) {
 	}
 	if _, err := s.Pending(ctx, fresh); err != nil {
 		t.Fatalf("fresh draft: %v", err)
+	}
+	if _, err := s.Pending(ctx, card); err != nil {
+		t.Fatalf("a card without a question expired: %v", err)
 	}
 }

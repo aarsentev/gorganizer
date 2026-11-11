@@ -142,6 +142,7 @@ func renderSamples() map[string]struct {
 		"event created":             {"event_card", eventCard{Title: "Doctor", Start: at(9, 0), End: at(10, 0), SameDay: true, Zone: "Europe/Warsaw", Created: true}},
 		"end question":              {"ask_end", question{Title: "Doctor", Start: at(9, 0)}},
 		"end button":                {"btn_end", at(9, 30)},
+		"nothing to cancel":         {"cancel_nothing", nil},
 		"status":                    {"status", statusView{Version: "a3ae58f", Built: at(9, 0), TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}, Paused: at(18, 0)}},
 		"status, no pause":          {"status", statusView{Version: "dev", TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}}},
 	}
@@ -205,6 +206,7 @@ func TestRenderRu(t *testing.T) {
 		"event created":             "📅 Doctor\nвт, 29 сен, 09:00–10:00 (Europe/Warsaw)\n✓ В календаре",
 		"end question":              "Doctor — вт, 29 сен, 09:00\nДо скольки?",
 		"end button":                "09:30",
+		"nothing to cancel":         "Нечего отменять",
 		"status":                    "Версия a3ae58f, собрана вт, 29 сен, 09:00\nEurope/Warsaw (GMT+2), сейчас 09:05\n⏸ Пауза до вт, 29 сен, 18:00",
 		"status, no pause":          "Версия dev\nEurope/Warsaw (GMT+2), сейчас 09:05\nПаузы нет",
 	})
@@ -243,6 +245,7 @@ func TestRenderEn(t *testing.T) {
 		"event created":             "📅 Doctor\nTue, Sep 29, 09:00–10:00 (Europe/Warsaw)\n✓ In the calendar",
 		"end question":              "Doctor — Tue, Sep 29, 09:00\nUntil when?",
 		"end button":                "09:30",
+		"nothing to cancel":         "Nothing to cancel",
 		"status":                    "Version a3ae58f, built Tue, Sep 29, 09:00\nEurope/Warsaw (GMT+2), now 09:05\n⏸ Paused until Tue, Sep 29, 18:00",
 		"status, no pause":          "Version dev\nEurope/Warsaw (GMT+2), now 09:05\nNot paused",
 	})

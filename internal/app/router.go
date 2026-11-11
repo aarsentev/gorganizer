@@ -20,6 +20,8 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 		a.handleToday(ctx, now, m.ChatID)
 	case "/add":
 		a.handleAdd(ctx, now, m.ChatID, args)
+	case "/cancel":
+		a.handleCancel(ctx, m.ChatID)
 	case "/task":
 		a.handleTask(ctx, now, m.ChatID, args)
 	case "/note":

@@ -24,6 +24,8 @@ func Every(ctx context.Context, d time.Duration, f func(context.Context, time.Ti
 // Tick runs every minute and reads only the local cache, never Google.
 // It is idempotent: a missed tick is harmless, the next one catches up.
 func (a *App) Tick(ctx context.Context, now time.Time) {
+	// Before the pause and quiet hours: closing a forgotten question sends nothing.
+	a.expireDrafts(ctx, now)
 	// A pause silences everything. Task reminders that come due are disarmed rather than
 	// held: after a week away they would all arrive at once, while the tasks themselves
 	// stay open and reach the next digest and day review. Checked before quiet hours,

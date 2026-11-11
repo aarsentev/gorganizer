@@ -153,6 +153,7 @@ Until when?{{end}}
 {{define "add_past"}}That time has passed: {{date .}}, {{clock .}}{{end}}
 {{define "add_no_calendar"}}No calendar connected{{end}}
 {{define "event_cancelled"}}✕ {{.Title}} — cancelled{{end}}
+{{define "cancel_nothing"}}Nothing to cancel{{end}}
 
 {{define "build_version"}}Version {{.Version}}{{if not .Built.IsZero}}, built {{date .Built}}, {{clock .Built}}{{end}}{{end}}
 {{define "build"}}{{template "build_version" .}}

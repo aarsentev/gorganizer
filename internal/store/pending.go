@@ -74,9 +74,10 @@ func (s *Store) DeletePending(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ExpirePending drops drafts not touched since before and returns how many.
+// ExpirePending drops drafts whose question has waited unanswered since before and returns
+// how many. A ready card (no asking) never expires: it waits until pressed or replaced.
 func (s *Store) ExpirePending(ctx context.Context, before time.Time) (int64, error) {
-	res, err := s.db.ExecContext(ctx, "DELETE FROM pending WHERE updated_utc < ?", before.Unix())
+	res, err := s.db.ExecContext(ctx, "DELETE FROM pending WHERE asking IS NOT NULL AND updated_utc < ?", before.Unix())
 	if err != nil {
 		return 0, fmt.Errorf("expire pending: %w", err)
 	}
