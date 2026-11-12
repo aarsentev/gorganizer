@@ -33,6 +33,8 @@ type App struct {
 	loc   atomic.Pointer[time.Location]
 	lang  atomic.Pointer[string]
 
+	health atomic.Pointer[syncHealth] // nil until the first sync after the start
+
 	// What this binary is; set once by SetBuild before anything else runs.
 	version, built string
 }

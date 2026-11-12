@@ -23,7 +23,7 @@
 {{define "cmd_inbox"}}Ящик заметок{{end}}
 {{define "cmd_tz"}}Часовой пояс: /tz toronto{{end}}
 {{define "cmd_pause"}}Пауза: /pause 3d, /pause off{{end}}
-{{define "cmd_status"}}Версия, часовой пояс, пауза{{end}}
+{{define "cmd_status"}}Версия, пояс, пауза, календарь{{end}}
 {{define "cmd_lang"}}Язык: /lang en{{end}}
 
 {{define "pause_on"}}⏸ Пауза до {{date .}}, {{clock .}}. Снять: /pause off{{end}}
@@ -161,4 +161,9 @@ Telegram ✓ · база {{if .DBErr}}⚠️ {{.DBErr}}{{else}}✓ (схема {
 
 {{define "status"}}{{template "build_version" .}}
 {{template "tz" .TZ}}
-{{if .Paused.IsZero}}Паузы нет{{else}}⏸ Пауза до {{date .Paused}}, {{clock .Paused}}{{end}}{{end}}
+{{if .Paused.IsZero}}Паузы нет{{else}}⏸ Пауза до {{date .Paused}}, {{clock .Paused}}{{end}}
+Календарь{{if .NoCalendar}} не подключён
+{{- else if not .Sync.Failing.IsZero}} ⚠️ не синхронизируется с {{date .Sync.Failing}}, {{clock .Sync.Failing}}: {{.Sync.Err}}
+{{- else if .Sync.OK.IsZero}} ещё не синхронизировался
+{{- else}} ✓ синхронизирован в {{clock .Sync.OK}}{{end}}
+Открыто: {{.Tasks}} {{plural .Tasks "задача" "задачи" "задач"}}, {{.Notes}} {{plural .Notes "заметка" "заметки" "заметок"}}{{end}}

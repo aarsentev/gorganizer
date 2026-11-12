@@ -146,3 +146,22 @@ func TestMissingTask(t *testing.T) {
 		t.Fatalf("SetTaskStatus(99) err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestOpenTaskCount(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 9, 29, 10, 0, 0, 0, time.UTC)
+	for _, title := range []string{"Call mom", "Pick up the part", "Renew passport"} {
+		if _, err := s.CreateTask(ctx, title, now.Add(48*time.Hour), now); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.SetTaskStatus(ctx, 2, "done"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Open whenever due: the two left count even though both are days ahead.
+	if n, err := s.OpenTaskCount(ctx); err != nil || n != 2 {
+		t.Fatalf("OpenTaskCount = %d, %v; want 2", n, err)
+	}
+}

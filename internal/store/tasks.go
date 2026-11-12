@@ -51,6 +51,15 @@ func (s *Store) DueTasks(ctx context.Context, now time.Time) ([]Task, error) {
 	return s.queryTasks(ctx, "WHERE status = 'open' AND reminded = 0 AND remind_utc <= ? ORDER BY remind_utc, id", now.Unix())
 }
 
+// OpenTaskCount is how many tasks are open, whenever they are due.
+func (s *Store) OpenTaskCount(ctx context.Context) (int, error) {
+	var n int
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM tasks WHERE status = 'open'").Scan(&n); err != nil {
+		return 0, fmt.Errorf("count open tasks: %w", err)
+	}
+	return n, nil
+}
+
 // OpenTasksBefore returns open tasks due before t, overdue ones included.
 func (s *Store) OpenTasksBefore(ctx context.Context, t time.Time) ([]Task, error) {
 	return s.queryTasks(ctx, "WHERE status = 'open' AND remind_utc < ? ORDER BY remind_utc, id", t.Unix())

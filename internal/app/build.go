@@ -18,10 +18,14 @@ type buildView struct {
 }
 
 type statusView struct {
-	Version string
-	Built   time.Time // in the user's zone; zero if the build time could not be read
-	TZ      tzView
-	Paused  time.Time // the end of the pause in the user's zone; zero if there is none
+	Version    string
+	Built      time.Time // in the user's zone; zero if the build time could not be read
+	TZ         tzView
+	Paused     time.Time // the end of the pause in the user's zone; zero if there is none
+	NoCalendar bool
+	Sync       syncHealth // times in the user's zone
+	Tasks      int        // open
+	Notes      int        // open
 }
 
 // SetBuild tells the app which commit it runs and when that was built.
@@ -39,7 +43,8 @@ func (a *App) builtAt() time.Time {
 	return t.In(a.Loc())
 }
 
-// handleStatus answers what runs and how it is set: the version, the zone, the pause.
+// handleStatus answers what runs and how it works: the version, the zone, the pause,
+// whether the calendar syncs, and how much is open.
 func (a *App) handleStatus(ctx context.Context, now time.Time, chatID int64) {
 	until, err := a.store.PausedUntil(ctx)
 	if err != nil {
@@ -51,6 +56,20 @@ func (a *App) handleStatus(ctx context.Context, now time.Time, chatID int64) {
 	if now.Before(until) {
 		view.Paused = until.In(loc)
 	}
+	view.NoCalendar = a.cal == nil
+	if h := a.health.Load(); h != nil {
+		view.Sync = syncHealth{OK: h.OK.In(loc), Failing: h.Failing.In(loc), Err: h.Err}
+	}
+	if view.Tasks, err = a.store.OpenTaskCount(ctx); err != nil {
+		a.log.Error("status", "err", err)
+		return
+	}
+	notes, err := a.store.OpenNoteIDs(ctx)
+	if err != nil {
+		a.log.Error("status", "err", err)
+		return
+	}
+	view.Notes = len(notes)
 	a.replyBlock(ctx, chatID, "status", view)
 }
 

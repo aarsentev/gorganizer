@@ -22,9 +22,37 @@ func (a *App) Sync(ctx context.Context, now time.Time) {
 	if a.cal == nil {
 		return
 	}
-	if err := a.sync(ctx, now); err != nil {
+	err := a.sync(ctx, now)
+	a.noteSync(now, err)
+	if err != nil {
 		a.log.Error("sync", "err", err)
 	}
+}
+
+// syncHealth is what syncs left behind, for /status. It lives in memory: after a restart
+// the first sync fills it again right away.
+type syncHealth struct {
+	OK      time.Time // the last successful sync, zero if none since the start
+	Failing time.Time // the first of the failures in a row, zero while syncs work
+	Err     string    // the last failure
+}
+
+// noteSync records a sync. Sync runs in one goroutine, /status reads from another:
+// the record is replaced as a whole through an atomic pointer, never changed in place.
+func (a *App) noteSync(now time.Time, err error) {
+	var h syncHealth
+	if last := a.health.Load(); last != nil {
+		h = *last
+	}
+	if err == nil {
+		h = syncHealth{OK: now}
+	} else {
+		if h.Failing.IsZero() {
+			h.Failing = now
+		}
+		h.Err = shorten(err.Error(), 100)
+	}
+	a.health.Store(&h)
 }
 
 func (a *App) sync(ctx context.Context, now time.Time) error {

@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
+	"go-organizer/internal/gcal"
 	"go-organizer/internal/tg"
 )
 
@@ -78,13 +80,58 @@ func TestStatus(t *testing.T) {
 	status()
 
 	head := "Версия a3ae58f, собрана сб, 24 окт, 12:20\nEurope/Warsaw (GMT+2), сейчас 15:05\n"
+	tail := "\nКалендарь не подключён\nОткрыто: 0 задач, 0 заметок"
 	want := []string{
-		head + "Паузы нет",
-		head + "⏸ Пауза до вт, 27 окт, 14:05",
-		head + "Паузы нет",
-		"Версия dev\nEurope/Warsaw (GMT+2), сейчас 15:05\nПаузы нет",
+		head + "Паузы нет" + tail,
+		head + "⏸ Пауза до вт, 27 окт, 14:05" + tail,
+		head + "Паузы нет" + tail,
+		"Версия dev\nEurope/Warsaw (GMT+2), сейчас 15:05\nПаузы нет" + tail,
 	}
 	if !sameStrings(send.sent, want) {
 		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
+	}
+}
+
+func TestStatusShowsSyncAndOpenItems(t *testing.T) {
+	ctx := context.Background()
+	down := errors.New("google is down")
+	cal := &fakeCalendar{replies: []calendarReply{
+		{changes: gcal.Changes{SyncToken: "t1"}},
+		{err: down},
+		{err: down},
+		{changes: gcal.Changes{SyncToken: "t2"}},
+	}}
+	a, send, st := newTestApp(t, cal, nil)
+	a.SetBuild("dev", "unknown")
+	if _, err := st.CreateTask(ctx, "Call mom", at(t, "2026-10-25 18:00"), at(t, "2026-10-24 09:00")); err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"Buy a bulb", "Tyre size"} {
+		if _, err := st.CreateNote(ctx, text, at(t, "2026-10-24 09:00")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status := func(now string) string {
+		a.HandleText(ctx, at(t, now), tg.Message{ChatID: 42, Text: "/status"})
+		lines := strings.Split(send.sent[len(send.sent)-1], "\n")
+		return strings.Join(lines[3:], "\n") // after the version, the zone and the pause
+	}
+
+	steps := []struct{ sync, now, want string }{
+		{"", "15:00", "Календарь ещё не синхронизировался"},
+		{"15:03", "15:05", "Календарь ✓ синхронизирован в 15:03"},
+		// The failure is dated from the first one in a row, the text is the last one's.
+		{"15:08", "15:09", "Календарь ⚠️ не синхронизируется с сб, 24 окт, 15:08: google is down"},
+		{"15:13", "15:14", "Календарь ⚠️ не синхронизируется с сб, 24 окт, 15:08: google is down"},
+		{"15:18", "15:19", "Календарь ✓ синхронизирован в 15:18"},
+	}
+	for _, step := range steps {
+		if step.sync != "" {
+			a.Sync(ctx, at(t, "2026-10-24 "+step.sync))
+		}
+		want := step.want + "\nОткрыто: 1 задача, 2 заметки"
+		if got := status("2026-10-24 " + step.now); got != want {
+			t.Errorf("after a sync at %q:\n%s\nwant\n%s", step.sync, got, want)
+		}
 	}
 }

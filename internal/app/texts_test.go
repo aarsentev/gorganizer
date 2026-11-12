@@ -106,6 +106,8 @@ func renderSamples() map[string]struct {
 		{N: 2, Text: "Call the bank", Done: true},
 	}}
 
+	zone := tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}
+
 	type sample = struct {
 		block string
 		data  any
@@ -143,8 +145,9 @@ func renderSamples() map[string]struct {
 		"end question":              {"ask_end", question{Title: "Doctor", Start: at(9, 0)}},
 		"end button":                {"btn_end", at(9, 30)},
 		"nothing to cancel":         {"cancel_nothing", nil},
-		"status":                    {"status", statusView{Version: "a3ae58f", Built: at(9, 0), TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}, Paused: at(18, 0)}},
-		"status, no pause":          {"status", statusView{Version: "dev", TZ: tzView{"Europe/Warsaw", time.Date(2026, 9, 29, 9, 5, 0, 0, warsaw)}}},
+		"status":                    {"status", statusView{Version: "a3ae58f", Built: at(9, 0), TZ: zone, Paused: at(18, 0), Sync: syncHealth{OK: at(9, 3)}, Tasks: 1, Notes: 5}},
+		"status, no pause":          {"status", statusView{Version: "dev", TZ: zone, NoCalendar: true, Tasks: 3, Notes: 1}},
+		"status, sync failing":      {"status", statusView{Version: "dev", TZ: zone, Sync: syncHealth{Failing: at(8, 40), Err: "list events: 503"}}},
 	}
 }
 
@@ -207,8 +210,11 @@ func TestRenderRu(t *testing.T) {
 		"end question":              "Doctor — вт, 29 сен, 09:00\nДо скольки?",
 		"end button":                "09:30",
 		"nothing to cancel":         "Нечего отменять",
-		"status":                    "Версия a3ae58f, собрана вт, 29 сен, 09:00\nEurope/Warsaw (GMT+2), сейчас 09:05\n⏸ Пауза до вт, 29 сен, 18:00",
-		"status, no pause":          "Версия dev\nEurope/Warsaw (GMT+2), сейчас 09:05\nПаузы нет",
+		"status": "Версия a3ae58f, собрана вт, 29 сен, 09:00\nEurope/Warsaw (GMT+2), сейчас 09:05\n⏸ Пауза до вт, 29 сен, 18:00\n" +
+			"Календарь ✓ синхронизирован в 09:03\nОткрыто: 1 задача, 5 заметок",
+		"status, no pause": "Версия dev\nEurope/Warsaw (GMT+2), сейчас 09:05\nПаузы нет\nКалендарь не подключён\nОткрыто: 3 задачи, 1 заметка",
+		"status, sync failing": "Версия dev\nEurope/Warsaw (GMT+2), сейчас 09:05\nПаузы нет\n" +
+			"Календарь ⚠️ не синхронизируется с вт, 29 сен, 08:40: list events: 503\nОткрыто: 0 задач, 0 заметок",
 	})
 }
 
@@ -246,8 +252,11 @@ func TestRenderEn(t *testing.T) {
 		"end question":              "Doctor — Tue, Sep 29, 09:00\nUntil when?",
 		"end button":                "09:30",
 		"nothing to cancel":         "Nothing to cancel",
-		"status":                    "Version a3ae58f, built Tue, Sep 29, 09:00\nEurope/Warsaw (GMT+2), now 09:05\n⏸ Paused until Tue, Sep 29, 18:00",
-		"status, no pause":          "Version dev\nEurope/Warsaw (GMT+2), now 09:05\nNot paused",
+		"status": "Version a3ae58f, built Tue, Sep 29, 09:00\nEurope/Warsaw (GMT+2), now 09:05\n⏸ Paused until Tue, Sep 29, 18:00\n" +
+			"Calendar ✓ synced at 09:03\nOpen: 1 task, 5 notes",
+		"status, no pause": "Version dev\nEurope/Warsaw (GMT+2), now 09:05\nNot paused\nCalendar not connected\nOpen: 3 tasks, 1 note",
+		"status, sync failing": "Version dev\nEurope/Warsaw (GMT+2), now 09:05\nNot paused\n" +
+			"Calendar ⚠️ not syncing since Tue, Sep 29, 08:40: list events: 503\nOpen: 0 tasks, 0 notes",
 	})
 }
 
