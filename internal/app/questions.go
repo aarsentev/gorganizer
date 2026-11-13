@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go-organizer/internal/intent"
@@ -63,13 +65,55 @@ func (a *App) onEnd(ctx context.Context, now time.Time, cb tg.Callback, p store.
 	if err != nil || duration <= 0 {
 		return fmt.Errorf("bad end button %q", minutes)
 	}
-	in.DurationMin = duration
-	if err := a.updateDraft(ctx, p.ID, in, in.Missing(), now); err != nil {
-		return err
-	}
-	text, keyboard, err := a.draftMessage(in, p.ID, now)
+	text, keyboard, err := a.takeEnd(ctx, now, p, in, duration)
 	if err != nil {
 		return err
 	}
 	return a.send.Edit(ctx, cb.ChatID, cb.MessageID, text, keyboard)
+}
+
+// answerDraft takes plain text as the answer to the chat's open question when it looks
+// like one: an end time such as 10:30 for "until when?". Anything else returns false and
+// goes the usual way, so a forgotten question never takes a message; it times out instead.
+func (a *App) answerDraft(ctx context.Context, now time.Time, chatID int64, text string) bool {
+	p, err := a.store.PendingFor(ctx, chatID)
+	if errors.Is(err, store.ErrNotFound) {
+		return false
+	}
+	if err != nil {
+		a.log.Error("answer draft", "err", err)
+		return false
+	}
+	if p.Asking != intent.AskEnd {
+		return false // a card asks nothing
+	}
+	in, err := decodeDraft(p)
+	if err != nil {
+		a.log.Error("answer draft", "err", err)
+		return false
+	}
+	// An end before the start is on the next day, as in /add 23:00-7:00; equal to it is no answer.
+	duration := rangeMinutes(in.Start.In(a.Loc()).Format("15:04"), strings.TrimSpace(text))
+	if duration == 0 {
+		return false
+	}
+	// The question is above the answer now, so what comes next is a new message.
+	reply, keyboard, err := a.takeEnd(ctx, now, p, in, duration)
+	if err != nil {
+		a.log.Error("answer draft", "err", err)
+		return true
+	}
+	if _, err := a.send.SendButtons(ctx, chatID, reply, keyboard); err != nil {
+		a.log.Error("send draft", "err", err)
+	}
+	return true
+}
+
+// takeEnd fills the end, by a button or a typed time, and returns what the draft shows next.
+func (a *App) takeEnd(ctx context.Context, now time.Time, p store.Pending, in intent.Intent, minutes int) (string, [][]tg.Button, error) {
+	in.DurationMin = minutes
+	if err := a.updateDraft(ctx, p.ID, in, in.Missing(), now); err != nil {
+		return "", nil, err
+	}
+	return a.draftMessage(in, p.ID, now)
 }

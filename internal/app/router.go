@@ -13,7 +13,8 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 	cmd, args := splitCommand(m.Text)
 	switch cmd {
 	case "":
-		if args != "" {
+		// Text that answers the open question is taken as the answer, the rest is asked about.
+		if args != "" && !a.answerDraft(ctx, now, m.ChatID, args) {
 			a.askKind(ctx, m)
 		}
 	case "/today":

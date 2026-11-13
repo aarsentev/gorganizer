@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,5 +71,82 @@ func TestEndQuestionCancels(t *testing.T) {
 	}
 	if _, err := st.PendingFor(ctx, 42); err == nil {
 		t.Fatal("the draft outlived its cancel")
+	}
+}
+
+func TestTypedEndAnswer(t *testing.T) {
+	ctx := context.Background()
+	cal := &fakeCalendar{}
+	a, send, st := newTestApp(t, cal, nil)
+	now := at(t, "2026-09-29 10:00")
+	say := func(text string) {
+		a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: text})
+	}
+
+	say("/add 30.09 9:00 Приём")
+	say("10:30")
+
+	// The question stays above the answer, so the card comes as a new message.
+	card := "📅 Приём\nср, 30 сен, 09:00–10:30 (Europe/Warsaw)\nНапомню завтра в 08:00"
+	if len(send.sent) != 2 || send.sent[1] != card {
+		t.Fatalf("sent %q, want the card after the question", send.sent)
+	}
+	if !sameRows(dataOf(send.keyboards[1]), [][]string{{"✓ Создать=evt:1:create", "✕ Отмена=evt:1:cancel"}}) {
+		t.Fatalf("card buttons = %v", dataOf(send.keyboards[1]))
+	}
+	if p, err := st.PendingFor(ctx, 42); err != nil || p.Asking != "" {
+		t.Fatalf("draft = %+v, %v; want nothing asked", p, err)
+	}
+	// The buttons of the answered question have nothing left to do.
+	if notice := a.HandleCallback(ctx, now, tg.Callback{ChatID: 42, MessageID: 1, Data: "evt:1:dur60"}); notice != "Уже неактуально" {
+		t.Fatalf("old question button: notice = %q", notice)
+	}
+
+	press(a, send, now.Add(time.Minute), 2, "evt:1:create")
+	if len(cal.created) != 1 || !cal.created[0].End.Equal(at(t, "2026-09-30 10:30")) {
+		t.Fatalf("created %+v, want one event until 10:30", cal.created)
+	}
+}
+
+func TestTypedEndOverMidnight(t *testing.T) {
+	ctx := context.Background()
+	a, send, _ := newTestApp(t, withCalendar(), nil)
+	now := at(t, "2026-09-29 10:00")
+
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/add 30.09 23:00 Смена"})
+	a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "7:00"})
+
+	if !strings.HasPrefix(send.sent[1], "📅 Смена\nср, 30 сен, 23:00–чт, 1 окт, 07:00") {
+		t.Fatalf("card = %q", send.sent[1])
+	}
+}
+
+// Only what looks like an answer is one: a forgotten question never takes a message.
+func TestTextThatIsNoAnswer(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, withCalendar(), nil)
+	now := at(t, "2026-09-29 10:00")
+	say := func(text string) {
+		a.HandleText(ctx, now, tg.Message{ChatID: 42, ID: int64(len(send.sent) + 100), Text: text})
+	}
+
+	say("/add 30.09 9:00 Приём")
+	say("купить хлеб") // not a time
+	say("9:00")        // the start itself: no length
+	say("/today")      // a command stays a command
+
+	if send.sent[1] != "Задача или заметка?" || send.sent[2] != "Задача или заметка?" ||
+		!strings.HasPrefix(send.sent[3], "☀️ Сегодня") {
+		t.Fatalf("sent %q", send.sent)
+	}
+	if p, err := st.PendingFor(ctx, 42); err != nil || p.Asking != intent.AskEnd {
+		t.Fatalf("draft = %+v, %v; want the question still open", p, err)
+	}
+
+	// Under a card nothing is asked: a time is just text.
+	say("/add 30.09 9:00-10:00 Встреча")
+	say("10:30")
+	if got := send.sent[len(send.sent)-1]; got != "Задача или заметка?" {
+		t.Fatalf("text under a card got %q", got)
 	}
 }
