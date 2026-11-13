@@ -12,9 +12,11 @@ func TestMissing(t *testing.T) {
 		in   Intent
 		want string
 	}{
-		"event without an end": {Intent{Kind: "event", Title: "Doctor", Start: &start}, AskEnd},
-		"complete event":       {Intent{Kind: "event", Title: "Doctor", Start: &start, DurationMin: 60}, ""},
-		"task has no end":      {Intent{Kind: "task", Title: "Call mom", Start: &start}, ""},
+		"event with a title only": {Intent{Kind: "event", Title: "Doctor"}, AskWhen},
+		"event with a date only":  {Intent{Kind: "event", Title: "Doctor", When: "2026-09-29"}, AskTime},
+		"event without an end":    {Intent{Kind: "event", Title: "Doctor", Start: &start}, AskEnd},
+		"complete event":          {Intent{Kind: "event", Title: "Doctor", Start: &start, DurationMin: 60}, ""},
+		"task has no end":         {Intent{Kind: "task", Title: "Call mom", Start: &start}, ""},
 	}
 	for name, c := range cases {
 		if got := c.in.Missing(); got != c.want {

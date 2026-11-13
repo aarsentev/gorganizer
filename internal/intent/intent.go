@@ -20,13 +20,23 @@ type Intent struct {
 // What a question can be about. Missing returns one, and the draft keeps it as asking,
 // so that the answer is read as that field.
 const (
-	AskEnd = "end" // the end of an event: "until when?"
+	AskWhen = "when" // neither the date nor the time: "when?"
+	AskTime = "time" // only the date, in When: "at what time?"
+	AskEnd  = "end"  // the end of an event: "until when?"
 )
 
 // Missing is the first field the user still has to be asked about, "" when nothing is.
 // Code decides it, not the parser: the model leaves out what it did not hear (SPEC §7).
 func (in Intent) Missing() string {
-	if in.Kind == "event" && in.Start != nil && in.DurationMin == 0 {
+	if in.Kind != "event" {
+		return ""
+	}
+	switch {
+	case in.Start == nil && in.When == "":
+		return AskWhen
+	case in.Start == nil:
+		return AskTime
+	case in.DurationMin == 0:
 		return AskEnd
 	}
 	return ""

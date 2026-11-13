@@ -147,7 +147,10 @@ Reminder {{template "when" .Remind}}
 
 {{define "add_usage"}}Example: /add 30.09 9:00-10:00 Doctor @ clinic
 The date in numbers, the time as start and end, the place after @.{{end}}
-{{define "add_incomplete"}}For now say the start time: /add 30.09 9:00 Doctor{{end}}
+{{define "ask_when"}}{{.Title}}
+When? For example: 30.09 9:00{{end}}
+{{define "ask_time"}}{{.Title}} — {{date .Day}}
+At what time? For example: 9:00 or 9:00-10:00{{end}}
 {{define "ask_end"}}{{.Title}} — {{date .Start}}, {{clock .Start}}
 Until when?{{end}}
 {{define "btn_end"}}{{clock .}}{{end}}

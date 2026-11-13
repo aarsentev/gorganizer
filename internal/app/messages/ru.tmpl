@@ -147,7 +147,10 @@
 
 {{define "add_usage"}}Пример: /add 30.09 9:00-10:00 Приём у врача @ клиника
 Дата — числом, время — начало и конец, место — после @.{{end}}
-{{define "add_incomplete"}}Пока нужно указать время начала: /add 30.09 9:00 Приём у врача{{end}}
+{{define "ask_when"}}{{.Title}}
+Когда? Например: 30.09 9:00{{end}}
+{{define "ask_time"}}{{.Title}} — {{date .Day}}
+Во сколько? Например: 9:00 или 9:00-10:00{{end}}
 {{define "ask_end"}}{{.Title}} — {{date .Start}}, {{clock .Start}}
 До скольки?{{end}}
 {{define "btn_end"}}{{clock .}}{{end}}

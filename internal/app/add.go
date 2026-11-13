@@ -12,7 +12,6 @@ import (
 )
 
 // handleAdd turns /add into a draft and shows its card, or asks about what is missing.
-// Until the other questions come (stage 4b), no start is answered with an example.
 func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args string) {
 	if a.cal == nil {
 		a.replyBlock(ctx, chatID, "add_no_calendar", nil)
@@ -23,17 +22,13 @@ func (a *App) handleAdd(ctx context.Context, now time.Time, chatID int64, args s
 		a.replyBlock(ctx, chatID, "add_usage", nil)
 		return
 	}
-	start, _ := a.moment(s, now)
-	if start == nil {
-		a.replyBlock(ctx, chatID, "add_incomplete", nil)
-		return
-	}
-	if !start.After(now) {
+	start, day := a.moment(s, now)
+	if start != nil && !start.After(now) {
 		a.replyBlock(ctx, chatID, "add_past", start.In(a.Loc()))
 		return
 	}
 	in := intent.Intent{
-		Action: "create", Kind: "event", Title: title, Start: start, DurationMin: s.duration, Location: location,
+		Action: "create", Kind: "event", Title: title, Start: start, When: day, DurationMin: s.duration, Location: location,
 	}
 	id, err := a.newDraft(ctx, chatID, in, in.Missing(), now)
 	if err != nil {
