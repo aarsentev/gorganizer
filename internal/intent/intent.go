@@ -15,6 +15,7 @@ type Intent struct {
 	When        string     `json:"when,omitempty"` // for an event: a known date (2026-09-29) whose time is still asked
 	DurationMin int        `json:"duration_min,omitempty"`
 	Location    string     `json:"location,omitempty"`
+	Text        string     `json:"text,omitempty"` // a note's text
 }
 
 // What a question can be about. Missing returns one, and the draft keeps it as asking,
