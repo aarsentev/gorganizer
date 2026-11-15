@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "kind", "title", "start", "when", "duration_min", "location", "text"],
+  "properties": {
+    "action": {"type": "string", "enum": ["create", "note", "update", "delete", "clarify"]},
+    "kind": {"type": "string", "enum": ["event", "task", ""]},
+    "title": {"type": "string"},
+    "start": {"anyOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]},
+    "when": {"type": "string"},
+    "duration_min": {"type": "integer"},
+    "location": {"type": "string"},
+    "text": {"type": "string"}
+  }
+}

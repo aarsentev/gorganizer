@@ -1,0 +1,43 @@
+# Answers the parser is shown as examples, in JSON exactly as it must answer. Each one is
+# exact for its message at its NOW; examples_test.go checks every answer against Intent,
+# the schema and Validate.
+# 2026-09-29 is a Tuesday.
+- now: 2026-09-29T10:00:00+02:00
+  message: приём у врача 30.09 в 9:00 в клинике на Ленина 12
+  answer: '{"action": "create", "kind": "event", "title": "Приём у врача", "start": "2026-09-30T09:00:00+02:00", "when": "", "duration_min": 0, "location": "клиника на Ленина 12", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: семинар завтра с 10 до 11:30
+  answer: '{"action": "create", "kind": "event", "title": "Семинар", "start": "2026-09-30T10:00:00+02:00", "when": "", "duration_min": 90, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: стоматолог в пятницу
+  answer: '{"action": "create", "kind": "event", "title": "Стоматолог", "start": null, "when": "2026-10-02", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: встреча с Анной
+  answer: '{"action": "create", "kind": "event", "title": "Встреча с Анной", "start": null, "when": "", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: dentist on Friday at 3pm for an hour
+  answer: '{"action": "create", "kind": "event", "title": "Dentist", "start": "2026-10-02T15:00:00+02:00", "when": "", "duration_min": 60, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: забрать запчасть вечером
+  answer: '{"action": "create", "kind": "task", "title": "Забрать запчасть", "start": null, "when": "evening", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: позвонить маме в 19:00
+  answer: '{"action": "create", "kind": "task", "title": "Позвонить маме", "start": "2026-09-29T19:00:00+02:00", "when": "", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: renew passport tomorrow
+  answer: '{"action": "create", "kind": "task", "title": "Renew passport", "start": null, "when": "2026-09-30", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: купить хлеб
+  answer: '{"action": "create", "kind": "task", "title": "Купить хлеб", "start": null, "when": "", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: размер шин 205/55 R16
+  answer: '{"action": "note", "kind": "", "title": "", "start": null, "when": "", "duration_min": 0, "location": "", "text": "размер шин 205/55 R16"}'
+- now: 2026-09-29T10:00:00+02:00
+  message: перенеси семинар на час позже
+  answer: '{"action": "update", "kind": "", "title": "", "start": null, "when": "", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: отмени стоматолога
+  answer: '{"action": "delete", "kind": "", "title": "", "start": null, "when": "", "duration_min": 0, "location": "", "text": ""}'
+- now: 2026-09-29T10:00:00+02:00
+  message: завтра в 9
+  answer: '{"action": "clarify", "kind": "", "title": "", "start": null, "when": "", "duration_min": 0, "location": "", "text": ""}'
