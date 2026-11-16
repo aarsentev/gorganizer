@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
+	"time"
 )
 
 // The prompt lives in files next to the code: prompts/ is all the model is told, and
@@ -18,6 +19,13 @@ var System string
 //
 //go:embed prompts/examples.yaml
 var Examples string
+
+// example is one entry of examples.yaml.
+type example struct {
+	Now     time.Time `yaml:"now"`
+	Message string    `yaml:"message"`
+	Answer  string    `yaml:"answer"`
+}
 
 // Schema is the form of the answer, enforced by the API (structured outputs).
 //

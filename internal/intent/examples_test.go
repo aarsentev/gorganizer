@@ -1,23 +1,15 @@
 package intent
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
-
-type example struct {
-	Now     time.Time `yaml:"now"`
-	Message string    `yaml:"message"`
-	Answer  string    `yaml:"answer"`
-}
 
 type schema struct {
 	AdditionalProperties bool                       `json:"additionalProperties"`
@@ -90,17 +82,15 @@ func TestExamples(t *testing.T) {
 		}
 
 		// It reads into Intent with nothing left over, and passes Validate at its NOW.
-		var in Intent
-		decoder := json.NewDecoder(bytes.NewReader([]byte(e.Answer)))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&in); err != nil {
+		in, err := decodeAnswer(e.Answer)
+		if err != nil {
 			t.Errorf("%q: %v", e.Message, err)
 			continue
 		}
 		if e.Now.IsZero() || e.Message == "" {
 			t.Errorf("example %+v has no now or no message", e)
 		}
-		err := in.Validate(e.Now)
+		err = in.Validate(e.Now)
 		if err != nil && !(errors.Is(err, ErrUnsupported) && (in.Action == "update" || in.Action == "delete")) {
 			t.Errorf("%q: Validate() = %v", e.Message, err)
 		}
