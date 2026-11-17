@@ -8,13 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go/v2"
-	"github.com/anthropics/anthropic-sdk-go/v2/option"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
 	"gopkg.in/yaml.v3"
 )
 
-// ErrRefused means the model declined the message for safety reasons. There is no answer
-// to act on, and Haiku has no fallback model on the server to try instead.
+// ErrRefused means the model declined the message for safety reasons.
 var ErrRefused = errors.New("model refused")
 
 const (
@@ -30,9 +31,9 @@ type Input struct {
 	Now  time.Time // in the user's zone; passed in, not read from the clock, so eval repeats
 }
 
-// Parser turns a message into an Intent through the Claude API.
+// Parser turns a message into an Intent through the OpenAI Responses API.
 type Parser struct {
-	client anthropic.Client
+	client openai.Client
 	model  string
 	system string
 	schema map[string]any
@@ -50,7 +51,7 @@ func NewParser(model string, opts ...option.RequestOption) (*Parser, error) {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
 	opts = append([]option.RequestOption{option.WithRequestTimeout(requestTimeout)}, opts...)
-	return &Parser{client: anthropic.NewClient(opts...), model: model, system: system, schema: schema}, nil
+	return &Parser{client: openai.NewClient(opts...), model: model, system: system, schema: schema}, nil
 }
 
 // systemPrompt is the instructions followed by the examples: the same on every call, so
@@ -78,32 +79,47 @@ func userText(in Input) string {
 // Parse asks the model what the message means. The answer is not validated here: the app
 // checks it with Validate before acting on it.
 func (p *Parser) Parse(ctx context.Context, in Input) (Intent, error) {
-	resp, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     p.model,
-		MaxTokens: maxTokens,
-		System:    []anthropic.TextBlockParam{{Text: p.system, CacheControl: anthropic.NewCacheControlEphemeralParam()}},
-		Messages:  []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(userText(in)))},
-		OutputConfig: anthropic.OutputConfigParam{
-			Effort: anthropic.OutputConfigEffortMedium,
-			Format: anthropic.JSONOutputFormatParam{Schema: p.schema},
+	resp, err := p.client.Responses.New(ctx, responses.ResponseNewParams{
+		Model:           p.model,
+		Instructions:    openai.String(p.system),
+		Input:           responses.ResponseNewParamsInputUnion{OfString: openai.String(userText(in))},
+		MaxOutputTokens: openai.Int(maxTokens),
+		Reasoning:       shared.ReasoningParam{Effort: shared.ReasoningEffortMedium},
+		Store:           openai.Bool(false),
+		Text: responses.ResponseTextConfigParam{
+			Format: responses.ResponseFormatTextConfigUnionParam{
+				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
+					Name:   "intent",
+					Schema: p.schema,
+					Strict: openai.Bool(true),
+				},
+			},
 		},
 	})
 	if err != nil {
 		return Intent{}, fmt.Errorf("parse: %w", err)
 	}
-	switch resp.StopReason {
-	case anthropic.StopReasonRefusal:
-		return Intent{}, ErrRefused
-	case anthropic.StopReasonMaxTokens:
-		return Intent{}, errors.New("parse: the answer was cut at max_tokens")
-	}
-	// Thinking blocks may come first: the answer is the text block.
-	for _, block := range resp.Content {
-		if text, ok := block.AsAny().(anthropic.TextBlock); ok {
-			return decodeAnswer(text.Text)
+	for _, item := range resp.Output {
+		if item.Type != "message" {
+			continue
+		}
+		for _, part := range item.AsMessage().Content {
+			if part.Type == "refusal" {
+				return Intent{}, ErrRefused
+			}
 		}
 	}
-	return Intent{}, errors.New("parse: no text in the answer")
+	if resp.Status == "incomplete" {
+		return Intent{}, fmt.Errorf("parse: incomplete response (%s)", resp.IncompleteDetails.Reason)
+	}
+	if resp.Status != "completed" {
+		return Intent{}, fmt.Errorf("parse: response status %q", resp.Status)
+	}
+	answer := resp.OutputText()
+	if answer == "" {
+		return Intent{}, errors.New("parse: no text in the answer")
+	}
+	return decodeAnswer(answer)
 }
 
 // decodeAnswer reads the model's JSON. A field Intent does not know is an error: the schema
