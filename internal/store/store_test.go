@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -30,8 +31,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 			t.Fatal(err)
 		}
-		if version != 4 {
-			t.Fatalf("user_version = %d, want 4", version)
+		if version != 5 {
+			t.Fatalf("user_version = %d, want 5", version)
 		}
 		var mode string
 		if err := s.db.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&mode); err != nil {
@@ -169,8 +170,89 @@ func TestStateAccessors(t *testing.T) {
 		t.Fatalf("LastBuild = %q", built)
 	}
 
-	if version, err := s.SchemaVersion(ctx); err != nil || version != 4 {
-		t.Fatalf("SchemaVersion = %d, %v; want 4", version, err)
+	if version, err := s.SchemaVersion(ctx); err != nil || version != 5 {
+		t.Fatalf("SchemaVersion = %d, %v; want 5", version, err)
+	}
+}
+
+func TestMigrateTrackersFromVersion4(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "upgrade.db")
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { db.Close() })
+	legacy := &Store{db: db}
+	for i, name := range []string{"0001_init.sql", "0002_sent_message_id.sql", "0003_tasks.sql", "0004_pending.sql"} {
+		body, err := migrations.ReadFile("migrations/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := legacy.apply(ctx, i+1, string(body)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Date(2026, 11, 18, 13, 0, 0, 0, time.UTC)
+	task, err := legacy.CreateTask(ctx, "Existing task", now, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	note, err := legacy.CreateNote(ctx, "Existing note", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := legacy.SetTZ(ctx, "Asia/Irkutsk"); err != nil {
+		t.Fatal(err)
+	}
+	if err := legacy.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	if version, err := s.SchemaVersion(ctx); err != nil || version != 5 {
+		t.Fatalf("upgraded version = %d, %v; want 5", version, err)
+	}
+	if got, err := s.Task(ctx, task); err != nil || got.Title != "Existing task" {
+		t.Fatalf("task after upgrade = %+v, %v", got, err)
+	}
+	if got, err := s.Note(ctx, note); err != nil || got.Text != "Existing note" {
+		t.Fatalf("note after upgrade = %+v, %v", got, err)
+	}
+	if tz, err := s.TZ(ctx); err != nil || tz != "Asia/Irkutsk" {
+		t.Fatalf("timezone after upgrade = %q, %v", tz, err)
+	}
+	trackers, err := s.Trackers(ctx)
+	if err != nil || len(trackers) != 0 {
+		t.Fatalf("upgrade must not enable trackers automatically: %+v, %v", trackers, err)
+	}
+	id := createTracker(t, s, "Mood", TrackerRating, "", now)
+	if err := s.SaveTrackerEntry(ctx, id, "2026-11-18", 4, now); err != nil {
+		t.Fatalf("save after upgrade: %v", err)
+	}
+}
+
+func TestTrackerEntryForeignKey(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	// Check SQLite itself enforces the relationship, even outside the store API.
+	if _, err := s.db.ExecContext(ctx, `
+		INSERT INTO tracker_entries (tracker_id, day, value, created_utc, updated_utc)
+		VALUES (999, '2026-11-18', 1, 0, 0)`); err == nil {
+		t.Fatal("database accepted an entry without a tracker")
+	}
+	now := time.Date(2026, 11, 18, 13, 0, 0, 0, time.UTC)
+	id := createTracker(t, s, "Mood", TrackerRating, "", now)
+	if err := s.SaveTrackerEntry(ctx, id, "2026-11-18", 4, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM trackers WHERE id = ?", id); err == nil {
+		t.Fatal("database allowed deletion of a tracker with history")
 	}
 }
 
