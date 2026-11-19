@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 )
@@ -105,5 +106,72 @@ func TestTrackerValidation(t *testing.T) {
 	}
 	if err := s.SetTrackerStatus(ctx, id+1, TrackerPaused); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("update missing tracker: %v, want ErrNotFound", err)
+	}
+}
+
+func TestPresetTrackerCreationIsIdempotent(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 11, 19, 13, 0, 0, 0, time.UTC)
+	if _, err := s.TrackerForPreset(ctx, "mood"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing preset = %v", err)
+	}
+	// Ordinary trackers may share the preset's display name without being merged.
+	ordinary := createTracker(t, s, "Mood", TrackerRating, "", now)
+	id, err := s.CreatePresetTracker(ctx, "mood", "Mood", TrackerRating, "", now)
+	if err != nil || id == ordinary {
+		t.Fatalf("preset id = %d, %v; ordinary id = %d", id, err, ordinary)
+	}
+	if err := s.SaveTrackerEntry(ctx, id, "2026-11-19", 4, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, status := range []string{TrackerActive, TrackerPaused, TrackerArchived} {
+		if err := s.SetTrackerStatus(ctx, id, status); err != nil {
+			t.Fatal(err)
+		}
+		gotID, err := s.CreatePresetTracker(ctx, "mood", "Настроение", TrackerRating, "", now.Add(time.Hour))
+		if err != nil || gotID != id {
+			t.Fatalf("repeated enable = %d, %v; want %d", gotID, err, id)
+		}
+		got, err := s.TrackerForPreset(ctx, "mood")
+		if err != nil || got.Status != status || got.Name != "Mood" || !got.Created.Equal(now) || got.Preset != "mood" {
+			t.Fatalf("repeated enable changed tracker = %+v, %v", got, err)
+		}
+		entry, err := s.TrackerEntry(ctx, id, "2026-11-19")
+		if err != nil || entry.Value != 4 {
+			t.Fatalf("repeated enable changed history = %+v, %v", entry, err)
+		}
+	}
+	all, err := s.Trackers(ctx)
+	if err != nil || len(all) != 2 || all[0].Preset != "" {
+		t.Fatalf("trackers = %+v, %v; want independent ordinary and preset trackers", all, err)
+	}
+	if _, err := s.CreatePresetTracker(ctx, " ", "Mood", TrackerRating, "", now); err == nil {
+		t.Fatal("blank preset accepted")
+	}
+}
+
+func TestConcurrentPresetEnable(t *testing.T) {
+	ctx := context.Background()
+	s := open(t)
+	now := time.Date(2026, 11, 19, 13, 0, 0, 0, time.UTC)
+	const count = 8
+	var ids [count]int64
+	var errs [count]error
+	var wg sync.WaitGroup
+	for i := range count {
+		wg.Go(func() {
+			ids[i], errs[i] = s.CreatePresetTracker(ctx, "mood", "Mood", TrackerRating, "", now)
+		})
+	}
+	wg.Wait()
+	for i := range count {
+		if errs[i] != nil || ids[i] == 0 || ids[i] != ids[0] {
+			t.Fatalf("enable %d = %d, %v; ids = %v", i, ids[i], errs[i], ids)
+		}
+	}
+	all, err := s.Trackers(ctx)
+	if err != nil || len(all) != 1 {
+		t.Fatalf("concurrent enables created duplicates: %+v, %v", all, err)
 	}
 }

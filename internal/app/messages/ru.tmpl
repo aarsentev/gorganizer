@@ -22,6 +22,7 @@
 {{define "cmd_task"}}Задача: /task забрать запчасть вечером{{end}}
 {{define "cmd_note"}}Заметка: мысль, факт, ссылка{{end}}
 {{define "cmd_inbox"}}Ящик заметок{{end}}
+{{define "cmd_trackers"}}Настроить ежедневные трекеры{{end}}
 {{define "cmd_tz"}}Часовой пояс: /tz toronto{{end}}
 {{define "cmd_pause"}}Пауза: /pause 3d, /pause off{{end}}
 {{define "cmd_status"}}Версия, пояс, пауза, календарь{{end}}
@@ -127,6 +128,35 @@
 {{define "btn_last"}}»{{end}}
 {{define "btn_as_task"}}☐ Задача{{end}}
 {{define "btn_as_note"}}📥 Заметка{{end}}
+
+{{define "trackers"}}📊 Твои трекеры
+{{if .}}Выбери трекер для настройки.{{else}}Трекеров пока нет. Добавь первый.{{end}}{{end}}
+{{define "trackers_failed"}}Не получилось открыть трекеры. Попробуй /trackers ещё раз.{{end}}
+{{define "tracker_presets"}}Выбери трекер, чтобы посмотреть пример вопроса.{{end}}
+{{define "tracker_name"}}{{if eq .Preset "mood"}}Настроение{{else}}{{.Name}}{{end}}{{end}}
+{{define "tracker_status"}}{{if eq . "active"}}Включён{{else if eq . "paused"}}На паузе{{else}}В архиве{{end}}{{end}}
+{{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
+{{define "tracker_mood_question"}}Какое у тебя сегодня настроение?{{end}}
+{{define "tracker_mood_scale"}}😞 Очень плохое · 🙁 Плохое · 😐 Нормальное · 🙂 Хорошее · 😄 Отличное{{end}}
+{{define "tracker_mood_preview"}}Трекер настроения
+Вечерний вопрос: {{.Clock}} ({{.Zone}})
+
+{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}
+
+Один ответ в день. Его можно исправить позже. Дни без ответа останутся пустыми.{{end}}
+{{define "tracker_detail"}}{{template "tracker_summary" .Tracker}}
+{{if eq .Status "active"}}Вечерний вопрос: {{.Clock}} ({{.Zone}})
+{{if eq .Preset "mood"}}{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}
+{{end}}Трекер можно поставить на паузу или убрать в архив — история сохранится.{{else if eq .Status "paused"}}Вечерние вопросы на паузе. История сохранена.{{else}}История сохранена. Включи трекер, чтобы снова им пользоваться.{{end}}{{end}}
+{{define "btn_tracker_add"}}＋ Добавить трекер{{end}}
+{{define "btn_tracker_mood"}}Настроение{{end}}
+{{define "btn_tracker_enable"}}Включить{{end}}
+{{define "btn_tracker_pause"}}Пауза{{end}}
+{{define "btn_tracker_resume"}}Возобновить{{end}}
+{{define "btn_tracker_archive"}}В архив{{end}}
+{{define "btn_tracker_back"}}‹ Назад{{end}}
 
 {{define "event_card"}}
 📅 {{.Title}}

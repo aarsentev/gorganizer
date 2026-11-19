@@ -22,6 +22,7 @@ Plain text: I'll ask whether it's a task or a note.
 {{define "cmd_task"}}Task: /task pick up the part evening{{end}}
 {{define "cmd_note"}}Note: a thought, a fact, a link{{end}}
 {{define "cmd_inbox"}}Notes inbox{{end}}
+{{define "cmd_trackers"}}Set up and manage daily trackers{{end}}
 {{define "cmd_tz"}}Time zone: /tz toronto{{end}}
 {{define "cmd_pause"}}Pause: /pause 3d, /pause off{{end}}
 {{define "cmd_status"}}Version, zone, pause, calendar{{end}}
@@ -127,6 +128,35 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_last"}}»{{end}}
 {{define "btn_as_task"}}☐ Task{{end}}
 {{define "btn_as_note"}}📥 Note{{end}}
+
+{{define "trackers"}}📊 Your trackers
+{{if .}}Select a tracker to manage it.{{else}}No trackers yet. Add one to get started.{{end}}{{end}}
+{{define "trackers_failed"}}Could not open your trackers. Try /trackers again.{{end}}
+{{define "tracker_presets"}}Choose a tracker to preview.{{end}}
+{{define "tracker_name"}}{{if eq .Preset "mood"}}Mood{{else}}{{.Name}}{{end}}{{end}}
+{{define "tracker_status"}}{{if eq . "active"}}Active{{else if eq . "paused"}}Paused{{else}}Archived{{end}}{{end}}
+{{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
+{{define "tracker_mood_question"}}How was your mood today?{{end}}
+{{define "tracker_mood_scale"}}😞 Very low · 🙁 Low · 😐 Okay · 🙂 Good · 😄 Great{{end}}
+{{define "tracker_mood_preview"}}Mood tracker
+Evening check-in: {{.Clock}} ({{.Zone}})
+
+{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}
+
+One answer per day. You can change your answer later. Unanswered days stay empty.{{end}}
+{{define "tracker_detail"}}{{template "tracker_summary" .Tracker}}
+{{if eq .Status "active"}}Evening check-in: {{.Clock}} ({{.Zone}})
+{{if eq .Preset "mood"}}{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}
+{{end}}You can pause or archive this tracker and keep its history.{{else if eq .Status "paused"}}Evening questions are paused. Your history is saved.{{else}}Your history is saved. Enable this tracker to use it again.{{end}}{{end}}
+{{define "btn_tracker_add"}}＋ Add tracker{{end}}
+{{define "btn_tracker_mood"}}Mood{{end}}
+{{define "btn_tracker_enable"}}Enable{{end}}
+{{define "btn_tracker_pause"}}Pause{{end}}
+{{define "btn_tracker_resume"}}Resume{{end}}
+{{define "btn_tracker_archive"}}Archive{{end}}
+{{define "btn_tracker_back"}}‹ Back{{end}}
 
 {{define "event_card"}}
 📅 {{.Title}}

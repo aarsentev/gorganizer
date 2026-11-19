@@ -31,8 +31,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 			t.Fatal(err)
 		}
-		if version != 5 {
-			t.Fatalf("user_version = %d, want 5", version)
+		if version != 6 {
+			t.Fatalf("user_version = %d, want 6", version)
 		}
 		var mode string
 		if err := s.db.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&mode); err != nil {
@@ -170,8 +170,8 @@ func TestStateAccessors(t *testing.T) {
 		t.Fatalf("LastBuild = %q", built)
 	}
 
-	if version, err := s.SchemaVersion(ctx); err != nil || version != 5 {
-		t.Fatalf("SchemaVersion = %d, %v; want 5", version, err)
+	if version, err := s.SchemaVersion(ctx); err != nil || version != 6 {
+		t.Fatalf("SchemaVersion = %d, %v; want 6", version, err)
 	}
 }
 
@@ -215,8 +215,8 @@ func TestMigrateTrackersFromVersion4(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { s.Close() })
-	if version, err := s.SchemaVersion(ctx); err != nil || version != 5 {
-		t.Fatalf("upgraded version = %d, %v; want 5", version, err)
+	if version, err := s.SchemaVersion(ctx); err != nil || version != 6 {
+		t.Fatalf("upgraded version = %d, %v; want 6", version, err)
 	}
 	if got, err := s.Task(ctx, task); err != nil || got.Title != "Existing task" {
 		t.Fatalf("task after upgrade = %+v, %v", got, err)
@@ -253,6 +253,53 @@ func TestTrackerEntryForeignKey(t *testing.T) {
 	}
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM trackers WHERE id = ?", id); err == nil {
 		t.Fatal("database allowed deletion of a tracker with history")
+	}
+}
+
+func TestMigrateTrackerPresetsFromVersion5(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "presets.db")
+	db, err := sql.Open("sqlite", "file:"+path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	legacy := &Store{db: db}
+	for i, name := range []string{"0001_init.sql", "0002_sent_message_id.sql", "0003_tasks.sql", "0004_pending.sql", "0005_trackers.sql"} {
+		body, err := migrations.ReadFile("migrations/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := legacy.apply(ctx, i+1, string(body)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Version 5 had no preset column. Preserve the old tracker and its answers as-is.
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO trackers (id, name, kind, status, created_utc) VALUES (1, 'Mood', 'rating', 'paused', 100);
+		INSERT INTO tracker_entries (tracker_id, day, value, created_utc, updated_utc)
+		VALUES (1, '2026-11-19', 4, 100, 100)`); err != nil {
+		t.Fatal(err)
+	}
+	if err := legacy.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	got, err := s.Tracker(ctx, 1)
+	if err != nil || got.Preset != "" || got.Name != "Mood" || got.Status != TrackerPaused {
+		t.Fatalf("old tracker after migration = %+v, %v", got, err)
+	}
+	entry, err := s.TrackerEntry(ctx, 1, "2026-11-19")
+	if err != nil || entry.Value != 4 {
+		t.Fatalf("old history after migration = %+v, %v", entry, err)
+	}
+	id, err := s.CreatePresetTracker(ctx, "mood", "Mood", TrackerRating, "", time.Unix(200, 0))
+	if err != nil || id == 1 {
+		t.Fatalf("new preset = %d, %v; must not claim an unrelated old tracker", id, err)
 	}
 }
 
