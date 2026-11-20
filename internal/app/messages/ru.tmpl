@@ -138,6 +138,9 @@
 {{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
 {{define "tracker_mood_question"}}Какое у тебя сегодня настроение?{{end}}
 {{define "tracker_mood_scale"}}😞 Очень плохое · 🙁 Плохое · 😐 Нормальное · 🙂 Хорошее · 😄 Отличное{{end}}
+{{define "mood_checkin"}}🌙 Настроение · {{.}}
+{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}{{end}}
 {{define "tracker_mood_preview"}}Трекер настроения
 Вечерний вопрос: {{.Clock}} ({{.Zone}})
 

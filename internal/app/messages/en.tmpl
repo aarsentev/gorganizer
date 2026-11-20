@@ -138,6 +138,9 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
 {{define "tracker_mood_question"}}How was your mood today?{{end}}
 {{define "tracker_mood_scale"}}😞 Very low · 🙁 Low · 😐 Okay · 🙂 Good · 😄 Great{{end}}
+{{define "mood_checkin"}}🌙 Mood · {{.}}
+{{template "tracker_mood_question" .}}
+{{template "tracker_mood_scale" .}}{{end}}
 {{define "tracker_mood_preview"}}Mood tracker
 Evening check-in: {{.Clock}} ({{.Zone}})
 
