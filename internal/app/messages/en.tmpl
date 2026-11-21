@@ -137,6 +137,8 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "tracker_status"}}{{if eq . "active"}}Active{{else if eq . "paused"}}Paused{{else}}Archived{{end}}{{end}}
 {{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
 {{define "tracker_mood_question"}}How was your mood today?{{end}}
+{{define "btn_mood_answer"}}{{if .Selected}}✓ {{end}}{{.Emoji}} {{.Value}}{{end}}
+{{define "mood_saved"}}Saved: {{.}}/5{{end}}
 {{define "tracker_mood_scale"}}😞 Very low · 🙁 Low · 😐 Okay · 🙂 Good · 😄 Great{{end}}
 {{define "mood_checkin"}}🌙 Mood · {{.}}
 {{template "tracker_mood_question" .}}

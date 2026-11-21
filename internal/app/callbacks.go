@@ -36,6 +36,8 @@ func (a *App) HandleCallback(ctx context.Context, now time.Time, cb tg.Callback)
 		err = a.onEvent(ctx, now, cb, id, action)
 	case "trk":
 		err = a.onTracker(ctx, now, cb, id, action)
+	case "mood":
+		err = a.onMoodAnswer(ctx, now, cb, id, action)
 	default:
 		a.log.Warn("unknown callback", "data", cb.Data)
 		return ""

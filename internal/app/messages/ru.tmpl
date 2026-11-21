@@ -137,6 +137,8 @@
 {{define "tracker_status"}}{{if eq . "active"}}Включён{{else if eq . "paused"}}На паузе{{else}}В архиве{{end}}{{end}}
 {{define "tracker_summary"}}{{template "tracker_name" .}} · {{template "tracker_status" .Status}}{{end}}
 {{define "tracker_mood_question"}}Какое у тебя сегодня настроение?{{end}}
+{{define "btn_mood_answer"}}{{if .Selected}}✓ {{end}}{{.Emoji}} {{.Value}}{{end}}
+{{define "mood_saved"}}Записано: {{.}}/5{{end}}
 {{define "tracker_mood_scale"}}😞 Очень плохое · 🙁 Плохое · 😐 Нормальное · 🙂 Хорошее · 😄 Отличное{{end}}
 {{define "mood_checkin"}}🌙 Настроение · {{.}}
 {{template "tracker_mood_question" .}}

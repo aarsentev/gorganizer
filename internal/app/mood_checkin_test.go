@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go-organizer/internal/store"
+	"go-organizer/internal/tg"
 )
 
 func TestMoodCheckinDelivery(t *testing.T) {
@@ -60,6 +61,90 @@ func TestMoodCheckinDelivery(t *testing.T) {
 				t.Fatalf("expected one dated question with no tasks: %q", send.sent)
 			}
 		})
+	}
+}
+
+func TestMoodAnswerSavesOriginalDay(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		t.Run(lang, func(t *testing.T) {
+			ctx := context.Background()
+			a, send, st := newTestApp(t, nil, nil)
+			if err := a.SetLang(ctx, lang); err != nil {
+				t.Fatal(err)
+			}
+			now := at(t, "2026-11-21 21:00")
+			id, err := st.CreatePresetTracker(ctx, moodPreset, "Mood", store.TrackerRating, "", now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			a.Tick(ctx, now)
+			if len(send.keyboards) != 1 || len(send.keyboards[0]) != 1 || len(send.keyboards[0][0]) != 5 {
+				t.Fatalf("expected five mood buttons: %v", send.keyboards)
+			}
+			for i, button := range send.keyboards[0][0] {
+				if want := buttonData("mood", id, "2026-11-21:"+string(rune('1'+i))); button.Data != want || len(button.Data) > 64 {
+					t.Fatalf("button %d = %+v, want %s", i, button, want)
+				}
+			}
+			if err := a.SetTZ(ctx, "Asia/Tokyo"); err != nil {
+				t.Fatal(err)
+			}
+			// Answer the following day, then replay the same press after a failed edit.
+			answerAt := now.Add(24 * time.Hour)
+			cb := tg.Callback{ChatID: 42, MessageID: 1, Data: send.keyboards[0][0][3].Data}
+			send.failEdits = 1
+			if notice := a.HandleCallback(ctx, answerAt, cb); notice != a.label("press_failed", nil) {
+				t.Fatalf("failed edit notice = %q", notice)
+			}
+			if notice := a.HandleCallback(ctx, answerAt.Add(time.Minute), cb); notice != "" {
+				t.Fatalf("retry notice = %q", notice)
+			}
+			entries, err := st.TrackerEntries(ctx, id, "2026-11-21", "2026-11-24")
+			if err != nil || len(entries) != 1 || entries[0].Day != "2026-11-21" || entries[0].Value != 4 || !entries[0].Updated.Equal(answerAt) {
+				t.Fatalf("answer duplicated, moved or changed on retry: %+v, %v", entries, err)
+			}
+			want := "Saved: 4/5"
+			if lang == "ru" {
+				want = "Записано: 4/5"
+			}
+			e := lastEdit(t, send)
+			if e.messageID != 1 || !strings.Contains(e.text, want) || !strings.Contains(e.text, "2026-11-21") || e.keyboard[0][3].Text != "✓ 🙂 4" {
+				t.Fatalf("saved selection not shown: %+v", e)
+			}
+		})
+	}
+}
+
+func TestMoodAnswerRejectsInvalidButtons(t *testing.T) {
+	ctx := context.Background()
+	a, send, st := newTestApp(t, nil, nil)
+	now := at(t, "2026-11-21 21:00")
+	id, err := st.CreatePresetTracker(ctx, moodPreset, "Mood", store.TrackerRating, "", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := st.CreateTracker(ctx, "Energy", store.TrackerRating, "", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, data := range []string{
+		buttonData("mood", id, "2026-11-21:0"), buttonData("mood", id, "2026-11-21:6"),
+		buttonData("mood", id, "2026-11-21:no"), buttonData("mood", id, "2026-11-21"),
+		buttonData("mood", id, "2026-02-30:4"), buttonData("mood", other, "2026-11-21:4"),
+		"mood:999:2026-11-21:4",
+	} {
+		if notice := a.HandleCallback(ctx, now, tg.Callback{ChatID: 42, MessageID: 1, Data: data}); notice == "" {
+			t.Errorf("accepted invalid callback %s", data)
+		}
+	}
+	for _, trackerID := range []int64{id, other} {
+		entries, err := st.TrackerEntries(ctx, trackerID, "2026-01-01", "2027-01-01")
+		if err != nil || len(entries) != 0 {
+			t.Fatalf("invalid button wrote entries: %+v, %v", entries, err)
+		}
+	}
+	if len(send.edits) != 0 {
+		t.Fatal("invalid button edited a question")
 	}
 }
 
