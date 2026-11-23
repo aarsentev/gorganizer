@@ -1,6 +1,7 @@
 package tg
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -85,6 +86,19 @@ func (c *Client) Send(ctx context.Context, chatID int64, text string) (int64, er
 	m, err := c.bot.SendMessage(ctx, &bot.SendMessageParams{ChatID: chatID, Text: text})
 	if err != nil {
 		return 0, fmt.Errorf("send to %d: %w", chatID, err)
+	}
+	return int64(m.ID), nil
+}
+
+// SendPNG uploads an in-memory PNG as a photo with an optional caption.
+func (c *Client) SendPNG(ctx context.Context, chatID int64, data []byte, caption string) (int64, error) {
+	m, err := c.bot.SendPhoto(ctx, &bot.SendPhotoParams{
+		ChatID:  chatID,
+		Photo:   &models.InputFileUpload{Filename: "image.png", Data: bytes.NewReader(data)},
+		Caption: caption,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("send photo to %d: %w", chatID, err)
 	}
 	return int64(m.ID), nil
 }
