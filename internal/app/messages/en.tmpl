@@ -23,6 +23,7 @@ Plain text: I'll ask whether it's a task or a note.
 {{define "cmd_note"}}Note: a thought, a fact, a link{{end}}
 {{define "cmd_inbox"}}Notes inbox{{end}}
 {{define "cmd_trackers"}}Enable or pause mood tracking{{end}}
+{{define "cmd_grid"}}Yearly mood grid: /grid mood{{end}}
 {{define "cmd_tz"}}Time zone: /tz toronto{{end}}
 {{define "cmd_pause"}}Pause: /pause 3d, /pause off{{end}}
 {{define "cmd_status"}}Version, zone, pause, calendar{{end}}
@@ -129,6 +130,10 @@ Time at the end: morning, afternoon, evening, 18:30, optionally with "tomorrow".
 {{define "btn_as_task"}}☐ Task{{end}}
 {{define "btn_as_note"}}📥 Note{{end}}
 
+{{define "grid_usage"}}Use /grid mood to see this year's mood grid.{{end}}
+{{define "grid_empty"}}No mood ratings recorded for {{.}} yet. Manage evening check-ins with /trackers.{{end}}
+{{define "grid_caption"}}Mood · {{.}}{{end}}
+{{define "grid_failed"}}Could not send your mood grid. Try /grid mood again.{{end}}
 {{define "trackers_failed"}}Could not open Mood settings. Try /trackers again.{{end}}
 {{define "tracker_mood_question"}}How was your mood today?{{end}}
 {{define "btn_mood_answer"}}{{if .Selected}}✓ {{end}}{{.Emoji}} {{.Value}}{{end}}

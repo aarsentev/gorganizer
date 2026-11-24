@@ -25,6 +25,20 @@ type fakeSender struct {
 	failSends int      // the next N sends fail, as if Telegram were down
 	failEdits int      // the next N edits fail
 	menus     [][]tg.Command
+	photos    []photo
+}
+
+type photo struct {
+	chatID int64
+	data   []byte
+}
+
+func (f *fakeSender) SendPNG(ctx context.Context, chatID int64, data []byte, caption string) (int64, error) {
+	id, err := f.Send(ctx, chatID, caption)
+	if err == nil {
+		f.photos = append(f.photos, photo{chatID, append([]byte(nil), data...)})
+	}
+	return id, err
 }
 
 func (f *fakeSender) SetCommands(_ context.Context, commands []tg.Command) error {
