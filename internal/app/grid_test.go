@@ -17,11 +17,11 @@ func TestGridUsesLocalYearAndSavedMood(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2025, 12, 31, 23, 30, 0, 0, time.UTC)
 	for _, tc := range []struct {
-		zone, lang, status, caption string
-		want                        map[string]int
+		zone, lang, status, caption, command string
+		want                                 map[string]int
 	}{
-		{"Europe/Warsaw", "en", store.TrackerActive, "Mood · 2026", map[string]int{"2026-01-01": 5}},
-		{"America/Toronto", "ru", store.TrackerPaused, "Настроение · 2025", map[string]int{"2025-12-31": 2}},
+		{"Europe/Warsaw", "en", store.TrackerActive, "Mood · 2026", "/grid@organizer", map[string]int{"2026-01-01": 5}},
+		{"America/Toronto", "ru", store.TrackerPaused, "Настроение · 2025", "/grid@organizer mood", map[string]int{"2025-12-31": 2}},
 	} {
 		t.Run(tc.zone, func(t *testing.T) {
 			a, send, st := newTestApp(t, nil, func(c *config.Config) { c.TZ, c.Lang = tc.zone, tc.lang })
@@ -37,7 +37,7 @@ func TestGridUsesLocalYearAndSavedMood(t *testing.T) {
 			if err := st.SetTrackerStatus(ctx, id, tc.status); err != nil {
 				t.Fatal(err)
 			}
-			a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/grid@organizer mood"})
+			a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: tc.command})
 			today := now.In(a.Loc())
 			want, err := moodgrid.Render(today.Year(), today, tc.want)
 			if err != nil {
@@ -89,7 +89,7 @@ func TestGridEmptyUsageAndStoreFailure(t *testing.T) {
 			}
 			a.HandleText(ctx, now, tg.Message{ChatID: 42, Text: "/grid mood"})
 			usage, empty := a.label("grid_usage", nil), a.label("grid_empty", 2026)
-			want := []string{usage, usage, usage, empty, empty, empty, a.label("grid_failed", nil)}
+			want := []string{empty, usage, usage, empty, empty, empty, a.label("grid_failed", nil)}
 			if len(send.photos) != 0 || !sameStrings(send.sent, want) {
 				t.Fatalf("messages = %q, photos = %d", send.sent, len(send.photos))
 			}

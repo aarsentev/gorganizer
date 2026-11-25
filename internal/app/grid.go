@@ -11,7 +11,7 @@ import (
 )
 
 func (a *App) handleGrid(ctx context.Context, now time.Time, chatID int64, args string) {
-	if !strings.EqualFold(args, moodPreset) {
+	if args != "" && !strings.EqualFold(args, moodPreset) {
 		a.replyBlock(ctx, chatID, "grid_usage", nil)
 		return
 	}
