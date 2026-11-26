@@ -11,6 +11,7 @@ const (
 	jobDigest  = "digest"
 	jobEvening = "evening"
 	jobCheckin = "checkin"
+	jobMood    = "mood_checkin"
 )
 
 // dailyJobs: "local time >= X and not done today", never "exactly X", so a restart
@@ -31,6 +32,7 @@ func (a *App) dailyJobs(ctx context.Context, now time.Time) {
 	}
 	if m >= clockMinutes(a.cfg.Anchors["eod"]) {
 		a.fire(ctx, jobCheckin, local, now, a.checkin)
+		a.fire(ctx, jobMood, local, now, a.moodCheckin)
 	}
 }
 

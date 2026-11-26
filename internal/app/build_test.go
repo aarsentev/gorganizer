@@ -27,8 +27,8 @@ func TestAnnounceBuild(t *testing.T) {
 	announce(a, "b4bf69a", "2026-10-25T08:00Z")
 
 	want := []string{
-		"Версия a3ae58f, собрана сб, 24 окт, 12:20\nTelegram ✓ · база ✓ (схема 4) · календарь ✓",
-		"Версия b4bf69a, собрана вс, 25 окт, 09:00\nTelegram ✓ · база ✓ (схема 4) · календарь ⚠️ google is down",
+		"Версия a3ae58f, собрана сб, 24 окт, 12:20\nTelegram ✓ · база ✓ (схема 6) · календарь ✓",
+		"Версия b4bf69a, собрана вс, 25 окт, 09:00\nTelegram ✓ · база ✓ (схема 6) · календарь ⚠️ google is down",
 	}
 	if !sameStrings(send.sent, want) {
 		t.Fatalf("sent\n%q\nwant\n%q", send.sent, want)
@@ -39,7 +39,7 @@ func TestAnnounceBuildEdges(t *testing.T) {
 	// Without a calendar there is nothing to check.
 	a, send, _ := newTestApp(t, nil, nil)
 	announce(a, "a3ae58f", "2026-10-24T10:20Z")
-	if !sameStrings(send.sent, []string{"Версия a3ae58f, собрана сб, 24 окт, 12:20\nTelegram ✓ · база ✓ (схема 4) · календарь не подключён"}) {
+	if !sameStrings(send.sent, []string{"Версия a3ae58f, собрана сб, 24 окт, 12:20\nTelegram ✓ · база ✓ (схема 6) · календарь не подключён"}) {
 		t.Fatalf("without a calendar: %q", send.sent)
 	}
 
@@ -55,7 +55,7 @@ func TestAnnounceBuildEdges(t *testing.T) {
 	// A build time in another form still shows the version.
 	c, odd, _ := newTestApp(t, withCalendar(), nil)
 	announce(c, "a3ae58f", "yesterday")
-	if !sameStrings(odd.sent, []string{"Версия a3ae58f\nTelegram ✓ · база ✓ (схема 4) · календарь ✓"}) {
+	if !sameStrings(odd.sent, []string{"Версия a3ae58f\nTelegram ✓ · база ✓ (схема 6) · календарь ✓"}) {
 		t.Fatalf("odd build time: %q", odd.sent)
 	}
 }

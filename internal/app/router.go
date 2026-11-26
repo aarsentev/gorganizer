@@ -29,6 +29,10 @@ func (a *App) HandleText(ctx context.Context, now time.Time, m tg.Message) {
 		a.handleNote(ctx, now, m.ChatID, args)
 	case "/inbox":
 		a.handleInbox(ctx, m.ChatID)
+	case "/trackers":
+		a.handleTrackers(ctx, m.ChatID)
+	case "/grid":
+		a.handleGrid(ctx, now, m.ChatID, args)
 	case "/tz":
 		a.handleTZ(ctx, now, m.ChatID, args)
 	case "/pause":

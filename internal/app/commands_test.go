@@ -21,6 +21,8 @@ func TestHelpAndMenu(t *testing.T) {
 		"/task — Задача: /task забрать запчасть вечером\n" +
 		"/note — Заметка: мысль, факт, ссылка\n" +
 		"/inbox — Ящик заметок\n" +
+		"/trackers — Включить или приостановить трекер настроения\n" +
+		"/grid — Настроение за год: /grid mood\n" +
 		"/tz — Часовой пояс: /tz toronto\n" +
 		"/pause — Пауза: /pause 3d, /pause off\n" +
 		"/status — Версия, пояс, пауза, календарь\n" +
