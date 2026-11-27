@@ -18,16 +18,19 @@ const (
 // does not lose a job and a flight west does not repeat it. The digest window ends
 // at the evening time: a morning digest at 23:00 after a long downtime is useless.
 func (a *App) dailyJobs(ctx context.Context, now time.Time) {
+	// Read readiness before the zone: the first sync may update both. Pending
+	// calendar jobs stay unclaimed so a later tick can send the complete plan.
+	calendarReady := a.calendarReady()
 	local := now.In(a.Loc())
 	m := minuteOfDay(local)
 	digestAt := clockMinutes(a.cfg.Digest.At)
 	eveningAt := clockMinutes(a.cfg.Reminders.EveningAt)
 
-	if m >= digestAt && m < eveningAt {
+	if (a.cal == nil || calendarReady) && m >= digestAt && m < eveningAt {
 		a.fire(ctx, jobDigest, local, now, a.digest)
 	}
 	// Without a calendar the evening message would say "nothing tomorrow" every day.
-	if a.cal != nil && m >= eveningAt {
+	if calendarReady && m >= eveningAt {
 		a.fire(ctx, jobEvening, local, now, a.evening)
 	}
 	if m >= clockMinutes(a.cfg.Anchors["eod"]) {

@@ -86,6 +86,10 @@ func (a *App) onEvent(ctx context.Context, now time.Time, cb tg.Callback, id int
 // createEvent writes the draft to Google, puts the event into the cache so that its
 // reminder does not wait for the next sync, and closes the draft.
 func (a *App) createEvent(ctx context.Context, now time.Time, cb tg.Callback, p store.Pending, in intent.Intent) error {
+	// A draft survives a restart, including one that disconnects the calendar.
+	if a.cal == nil {
+		return a.editBlock(ctx, cb, "add_no_calendar", nil, [][]tg.Button{a.cancelRow(p.ID)})
+	}
 	if !in.Start.After(now) {
 		// The card waited until the start had passed: an event in the past is not created.
 		if err := a.store.DeletePending(ctx, p.ID); err != nil {

@@ -40,8 +40,8 @@ func (a *App) Tick(ctx context.Context, now time.Time) {
 	if a.quiet(now) {
 		return
 	}
-	// Without a calendar the event cache is never synced: it can only be stale.
-	if a.cal != nil {
+	// Wait for the initial sync so startup cannot remind from an empty or stale cache.
+	if a.calendarReady() {
 		a.eventReminders(ctx, now)
 	}
 	// Daily jobs first: the day review takes in tasks due right now, and a separate ⏰ would repeat it.

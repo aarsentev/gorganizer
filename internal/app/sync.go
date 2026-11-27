@@ -16,8 +16,8 @@ type Calendar interface {
 	Check(ctx context.Context) error
 }
 
-// Sync runs every 5 minutes. Errors are only logged: the cache stays as it was
-// and reminders keep working from it until the next successful sync.
+// Sync runs every 5 minutes. After the first successful sync, errors leave the
+// cache available for reminders until the next successful sync.
 func (a *App) Sync(ctx context.Context, now time.Time) {
 	if a.cal == nil {
 		return
@@ -27,6 +27,13 @@ func (a *App) Sync(ctx context.Context, now time.Time) {
 	if err != nil {
 		a.log.Error("sync", "err", err)
 	}
+}
+
+// calendarReady waits for a successful sync in this process, including the zone
+// update. Later failures keep the last successful cache available.
+func (a *App) calendarReady() bool {
+	h := a.health.Load()
+	return a.cal != nil && h != nil && !h.OK.IsZero()
 }
 
 // syncHealth is what syncs left behind, for /status. It lives in memory: after a restart
